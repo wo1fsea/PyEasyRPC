@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """----------------------------------------------------------------------------
 Author:
-	Huang Quanyong
-	gzhuangquanyong@corp.netease.com
+    Huang Quanyong (wo1fSea)
+    quanyongh@foxmail.com
 Date:
-	2019/7/29
+    2019/7/29
 Description:
-	__init__
+    __init__.py
 ----------------------------------------------------------------------------"""
