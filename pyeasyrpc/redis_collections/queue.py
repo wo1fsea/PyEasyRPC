@@ -17,23 +17,23 @@ QUEUE_MAX_LENGTH = -1
 class Queue(RedisObject):
     Redis_Type = "list"
 
-    def __init__(self, key, packer=DEFAULT_PACKER, max_len=QUEUE_MAX_LENGTH):
-        super(Queue, self).__init__(key, packer)
+    def __init__(self, key, max_len=QUEUE_MAX_LENGTH, packer=DEFAULT_PACKER, url=None):
+        super(Queue, self).__init__(key, packer, url)
         self.max_len = max_len
 
     def put(self, item):
         item = self.pack(item)
-        self.redis.lpush(self.key, item)
+        self._redis.lpush(self.key, item)
         if self.max_len > 0:
-            self.redis.ltrim(self.key, 0, self.max_len)
+            self._redis.ltrim(self.key, 0, self.max_len)
 
     def get(self):
-        item = self.redis.rpop(self.key)
+        item = self._redis.rpop(self.key)
         item = self.unpack(item) if item else item
         return item
 
     def bget(self, timeout=0):
-        b_items = self.redis.brpop(self.key, timeout)
+        b_items = self._redis.brpop(self.key, timeout)
         if not b_items:
             return None
 
@@ -42,4 +42,4 @@ class Queue(RedisObject):
         return item
 
     def clear(self):
-        self.redis.delete(self.key)
+        self._redis.delete(self.key)

@@ -13,13 +13,9 @@ import redis
 
 DEFAULT_URL = "redis://localhost:6379/0"
 
-_redis = None
 
-
-def get_redis():
-    global _redis
-
-    if not _redis:
-        _redis = redis.StrictRedis.from_url(url=DEFAULT_URL)
-
+def get_redis(url=None):
+    if not url:
+        url = DEFAULT_URL
+    _redis = redis.Redis.from_url(url)
     return _redis

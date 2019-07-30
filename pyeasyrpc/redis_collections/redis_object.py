@@ -10,10 +10,10 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import time
-from .. import db_connection
-
 import msgpack
 import _pickle as pickle
+
+from .. import redis_connection
 
 _delta_time = None
 
@@ -39,7 +39,7 @@ class MsgPacker(Packer):
         return msgpack.packb(obj)
 
     def unpack(self, packed):
-        return msgpack.unpackb(packed, encoding='utf-8')
+        return msgpack.unpackb(packed, raw=False)
 
 
 class PicklePacker(Packer):
@@ -55,30 +55,32 @@ DEFAULT_PACKER = PicklePacker
 
 class RedisObject(object):
     Redis_Type = "none"
+    _delta_time = {}
 
-    def __init__(self, key, packer=DEFAULT_PACKER):
+    def __init__(self, key, packer=DEFAULT_PACKER, url=None):
         self._key = key
         self._packer = packer()
-        self.redis = db_connection.get_redis()
+        self._redis = redis_connection.get_redis(url)
 
     def get_type(self):
-        return self.redis.type(self._key).decode()
+        return self._redis.type(self._key).decode()
 
     def set_expire(self, milliseconds):
-        self.redis.pexpire(self._key, milliseconds)
+        self._redis.pexpire(self._key, milliseconds)
 
     @property
     def exists(self):
-        return self.redis.exists(self._key)
+        return self._redis.exists(self._key)
 
     @property
     def time(self):
-        global _delta_time
-        if _delta_time is None:
+        delta_time = self._delta_time.get(self._redis, None)
+        if delta_time is None:
             local_time = time.time()
-            redis_time = float("%d.%d" % self.redis.time())
-            _delta_time = redis_time - local_time
-        return _delta_time + time.time()
+            redis_time = float("%d.%d" % self._redis.time())
+            delta_time = redis_time - local_time
+            self._delta_time[self._redis] = delta_time
+        return delta_time + time.time()
 
     @property
     def key(self):

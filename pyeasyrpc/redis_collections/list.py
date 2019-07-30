@@ -9,18 +9,18 @@ Description:
     list.py
 ----------------------------------------------------------------------------"""
 
-from .redis_object import RedisObject, DEFAULT_PACKER
 from collections import UserList
+from .redis_object import RedisObject, DEFAULT_PACKER
 
 
 class List(RedisObject, UserList):
     Redis_Type = "list"
 
-    def __init__(self, key, packer=DEFAULT_PACKER):
-        super(List, self).__init__(key, packer)
+    def __init__(self, key, packer=DEFAULT_PACKER, url=None):
+        super(List, self).__init__(key, packer, url)
 
     def __get_data(self):
-        return map(self.unpack, self.redis.lrange(self.key, 0, -1))
+        return map(self.unpack, self._redis.lrange(self.key, 0, -1))
 
     def __cast(self, other):
         return tuple(other)
@@ -33,20 +33,20 @@ class List(RedisObject, UserList):
         return item in self.data
 
     def __len__(self):
-        return self.redis.llen(self.key)
+        return self._redis.llen(self.key)
 
     def __getitem__(self, i):
         if isinstance(i, slice):
             return self.data[i]
 
-        item = self.redis.lindex(self.key, i)
+        item = self._redis.lindex(self.key, i)
         if item:
             item = self.unpack(item)
         return item
 
     def __setitem__(self, i, item):
         packed = self.pack(item)
-        self.redis.lset(self.key, i, packed)
+        self._redis.lset(self.key, i, packed)
 
     def __delitem__(self, i):
         raise NotImplementedError()
@@ -72,19 +72,19 @@ class List(RedisObject, UserList):
 
     def append(self, item):
         item = self.pack(item)
-        self.redis.rpush(self._key, item)
+        self._redis.rpush(self._key, item)
 
     def insert(self, i, item):
         data = list(self.__get_data())
         data.insert(i, item)
         self.clear()
-        self.redis.rpush(self._key, *data)
+        self._redis.rpush(self._key, *data)
 
     def pop(self, i=-1):
         data = list(self.__get_data())
         item = data.pop(i)
         self.clear()
-        self.redis.rpush(self._key, *data)
+        self._redis.rpush(self._key, *data)
 
         return item
 
@@ -92,7 +92,7 @@ class List(RedisObject, UserList):
         data = list(self.__get_data())
         data.remove(item)
         self.clear()
-        self.redis.rpush(self._key, *data)
+        self._redis.rpush(self._key, *data)
 
     def copy(self):
         raise NotImplementedError()
@@ -107,13 +107,13 @@ class List(RedisObject, UserList):
         data = list(self.__get_data())
         data.reverse()
         self.clear()
-        self.redis.rpush(self._key, *data)
+        self._redis.rpush(self._key, *data)
 
     def sort(self, *args, **kwds):
         data = list(self.__get_data())
         data.sort(*args, **kwds)
         self.clear()
-        self.redis.rpush(self._key, *data)
+        self._redis.rpush(self._key, *data)
 
     def extend(self, other):
-        self.redis.rpush(self._key, *other)
+        self._redis.rpush(self._key, *other)
