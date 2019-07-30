@@ -23,7 +23,7 @@ class Dict(RedisObject, UserDict):
 
     @property
     def data(self):
-        raise NotImplementedError()
+        return self.redis.hgetall(self.key)
 
     def __len__(self):
         return self.redis.hlen(self.key)

@@ -11,7 +11,7 @@ Description:
 
 import redis
 
-from ..config_reader import ConfigReader
+DEFAULT_URL = "redis://localhost:6379/0"
 
 _redis = None
 
@@ -20,9 +20,6 @@ def get_redis():
     global _redis
 
     if not _redis:
-        config_reader = ConfigReader()
-        redis_config = config_reader.get_config("redis")
-        assert redis_config, "redis config not exists."
-        _redis = redis.StrictRedis(**redis_config)
+        _redis = redis.StrictRedis.from_url(url=DEFAULT_URL)
 
     return _redis
