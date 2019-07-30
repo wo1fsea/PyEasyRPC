@@ -63,7 +63,7 @@ class RedisDictTestCase(unittest.TestCase):
         self.assertSequenceEqual(d["tuple"], (0, "1", 2.0, 3))
 
         # get the same Dict by key
-        d2 = Dict(redis_key)
+        d2 = Dict(redis_key, packer)
         self.assertEqual(d2["int"], 1)
         self.assertEqual(d2["float"], 1.1)
         self.assertEqual(d2["string"], "string")
