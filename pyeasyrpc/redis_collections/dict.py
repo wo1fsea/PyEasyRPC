@@ -75,4 +75,4 @@ class Dict(RedisObject, UserDict):
         return default
 
     def copy(self):
-        raise NotImplementedError()
+        return self.data
