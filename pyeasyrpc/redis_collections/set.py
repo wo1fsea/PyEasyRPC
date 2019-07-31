@@ -12,11 +12,15 @@ Description:
 from .redis_object import RedisObject
 
 
-class Set(RedisObject):
+class Set(RedisObject, set):
     Redis_Type = "set"
 
     def __init__(self, key, packer=None, url=None):
         super(Set, self).__init__(key, packer, url)
+
+    @property
+    def data(self):
+        return set(map(self.unpack, self._redis.smembers(self.key)))
 
     def add(self, element):
         """
@@ -56,7 +60,18 @@ class Set(RedisObject):
         self._redis.srem(self.key, b_element)
 
     def copy(self):
-        raise NotImplementedError()
+        return self.data
+
+    def union(self, other):
+        """
+        Return the union of sets as a new set.
+
+        (i.e. all elements that are in either set.)
+        """
+        if isinstance(other, Set):
+            return set(map(self.unpack, self._redis.sunion(self.key, other.key)))
+        else:
+            return self.data.union(other)
 
     def update(self, other):
         """ Update a set with the union of itself and others. """
@@ -72,140 +87,166 @@ class Set(RedisObject):
 
         (i.e. all elements that are in this set but not the others.)
         """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            return set(map(self.unpack, self._redis.sdiff(self.key, other.key)))
+        else:
+            return self.data.difference(other)
 
     def difference_update(self, other):
         """ Remove all elements of another set from this set. """
-        raise NotImplementedError()
+        self._redis.srem(self.key, *other)
 
-    def intersection(self, *args, **kwargs):
+    def intersection(self, other):
         """
         Return the intersection of two sets as a new set.
 
         (i.e. all elements that are in both sets.)
         """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            return set(map(self.unpack, self._redis.sinter(self.key, other.key)))
+        else:
+            return self.data.intersection(other)
 
-    def intersection_update(self, *args, **kwargs):
+    def intersection_update(self, other):
         """ Update a set with the intersection of itself and another. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            self._redis.sinterstore(self.key, self.key, other.key)
+        else:
+            self._redis.sadd(*self.data.intersection(other))
 
-    def isdisjoint(self, *args, **kwargs):
-        """ Return True if two sets have a null intersection. """
-        raise NotImplementedError()
-
-    def issubset(self, *args, **kwargs):
-        """ Report whether another set contains this set. """
-        raise NotImplementedError()
-
-    def issuperset(self, *args, **kwargs):
-        """ Report whether this set contains another set. """
-        raise NotImplementedError()
-
-    def symmetric_difference(self, *args, **kwargs):
+    def symmetric_difference(self, other):
         """
         Return the symmetric difference of two sets as a new set.
 
         (i.e. all elements that are in exactly one of the sets.)
         """
-        raise NotImplementedError()
+        return self.difference(other).union(other.difference(self))
 
     def symmetric_difference_update(self, *args, **kwargs):
         """ Update a set with the symmetric difference of itself and another. """
-        raise NotImplementedError()
+        self._redis.sadd(*self.symmetric_difference())
 
-    def union(self, *args, **kwargs):
-        """
-        Return the union of sets as a new set.
+    def isdisjoint(self, other):
+        """ Return True if two sets have a null intersection. """
+        return bool(self.intersection(other))
 
-        (i.e. all elements that are in either set.)
-        """
-        raise NotImplementedError()
+    def issubset(self, other):
+        """ Report whether another set contains this set. """
+        if isinstance(other, Set):
+            other = other.data
 
-    def __repr__(self, *args, **kwargs):
+        return self.data.issubset(other)
+
+    def issuperset(self, other):
+        """ Report whether this set contains another set. """
+        if isinstance(other, Set):
+            other = other.data
+
+        return self.data.issuperset(other)
+
+    def __repr__(self):
         """ Return repr(self). """
-        raise NotImplementedError()
+        return repr(self.data)
 
-    def __iter__(self, *args, **kwargs):
+    def __iter__(self):
         """ Implement iter(self). """
         raise NotImplementedError()
 
-    def __len__(self, *args, **kwargs):
+    def __len__(self):
         """ Return len(self). """
-        raise NotImplementedError()
+        return self._redis.scard(self.key)
 
-    def __contains__(self, y):
+    def __contains__(self, element):
         """ x.__contains__(y) <==> y in x. """
-        raise NotImplementedError()
+        return self._redis.sismember(self.key, element)
 
-    def __eq__(self, *args, **kwargs):
+    def __eq__(self, other):
         """ Return self==value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data == other
 
-    def __ne__(self, *args, **kwargs):
+    def __ne__(self, other):
         """ Return self!=value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data != other
 
-    def __ge__(self, *args, **kwargs):
+    def __ge__(self, other):
         """ Return self>=value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data >= other
 
-    def __gt__(self, *args, **kwargs):
+    def __gt__(self, other):
         """ Return self>value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data > other
 
-    def __le__(self, *args, **kwargs):
+    def __le__(self, other):
         """ Return self<=value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data <= other
 
-    def __lt__(self, *args, **kwargs):
+    def __lt__(self, other):
         """ Return self<value. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            other = other.data
+        return self.data < other
 
-    def __sub__(self, *args, **kwargs):
+    def __sub__(self, other):
         """ Return self-value. """
-        raise NotImplementedError()
+        return self.difference(other)
 
-    def __rsub__(self, *args, **kwargs):
+    def __rsub__(self, other):
         """ Return value-self. """
-        raise NotImplementedError()
+        if isinstance(other, Set):
+            return other.difference(self)
+        else:
+            return other.difference(self.data)
 
-    def __isub__(self, *args, **kwargs):
+    def __isub__(self, other):
         """ Return self-=value. """
-        raise NotImplementedError()
+        self.difference_update(other)
+        return self
 
-    def __and__(self, *args, **kwargs):
+    def __and__(self, other):
         """ Return self&value. """
-        raise NotImplementedError()
+        return self.intersection(other)
 
-    def __rand__(self, *args, **kwargs):
+    def __rand__(self, other):
         """ Return value&self. """
-        raise NotImplementedError()
+        return self.intersection(other)
 
-    def __iand__(self, *args, **kwargs):
+    def __iand__(self, other):
         """ Return self&=value. """
-        raise NotImplementedError()
+        self.intersection_update(other)
+        return self
 
-    def __or__(self, *args, **kwargs):
+    def __or__(self, other):
         """ Return self|value. """
-        raise NotImplementedError()
+        return self.union(other)
 
-    def __ror__(self, *args, **kwargs):
+    def __ror__(self, other):
         """ Return value|self. """
-        raise NotImplementedError()
+        return self.union(other)
 
-    def __ior__(self, *args, **kwargs):
+    def __ior__(self, other):
         """ Return self|=value. """
-        raise NotImplementedError()
+        self.update(other)
+        return self
 
-    def __xor__(self, *args, **kwargs):
+    def __xor__(self, other):
         """ Return self^value. """
-        raise NotImplementedError()
+        return self.symmetric_difference(other)
 
-    def __rxor__(self, *args, **kwargs):
+    def __rxor__(self, other):
         """ Return value^self. """
-        raise NotImplementedError()
+        return self.symmetric_difference(other)
 
-    def __ixor__(self, *args, **kwargs):
+    def __ixor__(self, other):
         """ Return self^=value. """
-        raise NotImplementedError()
+        self.symmetric_difference_update(other)
+        return self

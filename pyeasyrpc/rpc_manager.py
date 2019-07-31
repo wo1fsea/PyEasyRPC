@@ -10,6 +10,7 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import uuid
+from .singleton import Singleton
 
 
 def generate_uuid():
@@ -18,9 +19,6 @@ def generate_uuid():
     :return: uuid
     """
     return str(uuid.uuid4())
-
-
-from .singleton import Singleton
 
 
 class RPCManager(Singleton):
