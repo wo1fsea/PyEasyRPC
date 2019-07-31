@@ -16,13 +16,13 @@ from pyeasyrpc.redis_collections.redis_object import MsgPacker, PicklePacker
 
 class RedisDictTestCase(unittest.TestCase):
 
-    def test_msg_packer(self):
-        self.__base_test("msg_packer_test", MsgPacker)
+    def test_dict_msg_packer(self):
+        self.__test_dict("msg_packer_test", MsgPacker)
 
-    def test_pickle_packer(self):
-        self.__base_test("pickle_packer_test", PicklePacker)
+    def test_dict_pickle_packer(self):
+        self.__test_dict("pickle_packer_test", PicklePacker)
 
-    def __base_test(self, redis_key, packer):
+    def __test_dict(self, redis_key, packer):
         # test data
         data = {
             "int": 1,
