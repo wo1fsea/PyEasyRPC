@@ -10,13 +10,13 @@ Description:
 ----------------------------------------------------------------------------"""
 
 from collections import UserList
-from .redis_object import RedisObject, DEFAULT_PACKER
+from .redis_object import RedisObject
 
 
 class List(RedisObject, UserList):
     Redis_Type = "list"
 
-    def __init__(self, key, packer=DEFAULT_PACKER, url=None):
+    def __init__(self, key, packer=None, url=None):
         super(List, self).__init__(key, packer, url)
 
     def __get_data(self):

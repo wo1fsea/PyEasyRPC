@@ -23,20 +23,32 @@ class RedisDictTestCase(unittest.TestCase):
         self.__base_test("pickle_packer_test", PicklePacker)
 
     def __base_test(self, redis_key, packer):
+        # test data
+        data = {
+            "int": 1,
+            "float": 1.1,
+            "string": "string",
+            "dict": {"int": 1, "float": 1.1, "string": "string"},
+            "list": [0, "1", 2.0, 3],
+            "tuple": (0, "1", 2.0, 3),
+        }
         d = Dict(redis_key, packer)
+        # get the same Dict by key
+        d2 = Dict(redis_key, packer)
+
         d.clear()
 
         self.assertEqual(len(d), 0)
 
-        d["int"] = 1
-        d["float"] = 1.1
-        d["string"] = "string"
+        d["int"] = data["int"]
+        d["float"] = data["float"]
+        d["string"] = data["string"]
 
         self.assertEqual(len(d), 3)
 
-        d["dict"] = {"int": 1, "float": 1.1, "string": "string"}
-        d["list"] = [0, "1", 2.0, 3]
-        d["tuple"] = (0, "1", 2.0, 3)
+        d["dict"] = data["dict"]
+        d["list"] = data["list"]
+        d["tuple"] = data["tuple"]
 
         self.assertEqual(len(d), 6)
 
@@ -50,26 +62,41 @@ class RedisDictTestCase(unittest.TestCase):
         self.assertEqual("found" not in d, False)
         self.assertEqual(d.get("found"), "found")
 
+        # test setdefault
+        self.assertEqual(d.setdefault("found", None), "found")
+        self.assertEqual(d.setdefault("not found", "not found"), "not found")
+
+        self.assertEqual(d.get("not found"), "not found")
+
+        del d["not found"]
         del d["found"]
+
         self.assertEqual("found" in d, False)
         self.assertEqual("found" not in d, True)
         self.assertEqual(d.get("found"), None)
 
-        self.assertEqual(d["int"], 1)
-        self.assertEqual(d["float"], 1.1)
-        self.assertEqual(d["string"], "string")
-        self.assertEqual(d["dict"], {"int": 1, "float": 1.1, "string": "string"})
-        self.assertSequenceEqual(d["list"], [0, "1", 2.0, 3])
-        self.assertSequenceEqual(d["tuple"], (0, "1", 2.0, 3))
+        self.assertEqual(d["int"], data["int"])
+        self.assertEqual(d["float"], data["float"])
+        self.assertEqual(d["string"], data["string"])
+        self.assertEqual(d["dict"], data["dict"])
+        self.assertSequenceEqual(d["list"], data["list"])
+        self.assertSequenceEqual(d["tuple"], data["tuple"])
 
-        # get the same Dict by key
-        d2 = Dict(redis_key, packer)
-        self.assertEqual(d2["int"], 1)
-        self.assertEqual(d2["float"], 1.1)
-        self.assertEqual(d2["string"], "string")
-        self.assertEqual(d2["dict"], {"int": 1, "float": 1.1, "string": "string"})
-        self.assertSequenceEqual(d2["list"], [0, "1", 2.0, 3])
-        self.assertSequenceEqual(d2["tuple"], (0, "1", 2.0, 3))
+        # test keys
+        self.assertSequenceEqual(sorted(d.keys()), sorted(data.keys()))
+        # TODO: test values
+        # TODO: test items
+
+        # test d2
+        self.assertEqual(d2["int"], data["int"])
+        self.assertEqual(d2["float"], data["float"])
+        self.assertEqual(d2["string"], data["string"])
+        self.assertEqual(d2["dict"], data["dict"])
+        self.assertSequenceEqual(d2["list"], data["list"])
+        self.assertSequenceEqual(d2["tuple"], data["tuple"])
+
+        # test ==
+        self.assertEqual(d2, d.data)
 
         d2.clear()
         self.assertEqual(len(d), 0)

@@ -10,20 +10,20 @@ Description:
 ----------------------------------------------------------------------------"""
 
 from collections import UserDict
-from .redis_object import RedisObject, DEFAULT_PACKER
+from .redis_object import RedisObject
 
 
 class Dict(RedisObject, UserDict):
     Redis_Type = "hash"
 
-    def __init__(self, key, packer=DEFAULT_PACKER, url=None):
+    def __init__(self, key, packer=None, url=None):
         super(Dict, self).__init__(key, packer, url)
 
         # assert self.get_type() in (self.Redis_Type, RedisObject.Redis_Type), "Wrong Redis Object Type"
 
     @property
     def data(self):
-        return self._redis.hgetall(self.key)
+        return dict(self.items())
 
     def __len__(self):
         return self._redis.hlen(self.key)
@@ -66,9 +66,6 @@ class Dict(RedisObject, UserDict):
 
     def values(self):
         return map(self.unpack, self._redis.hvals(self.key))
-
-    def clear(self):
-        self._redis.delete(self.key)
 
     def setdefault(self, key, default=None):
         try:

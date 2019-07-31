@@ -9,7 +9,7 @@ Description:
     queue.py
 ----------------------------------------------------------------------------"""
 
-from .redis_object import RedisObject, DEFAULT_PACKER
+from .redis_object import RedisObject
 
 QUEUE_MAX_LENGTH = -1
 
@@ -17,7 +17,7 @@ QUEUE_MAX_LENGTH = -1
 class Queue(RedisObject):
     Redis_Type = "list"
 
-    def __init__(self, key, max_len=QUEUE_MAX_LENGTH, packer=DEFAULT_PACKER, url=None):
+    def __init__(self, key, max_len=QUEUE_MAX_LENGTH, packer=None, url=None):
         super(Queue, self).__init__(key, packer, url)
         self.max_len = max_len
 
@@ -40,6 +40,3 @@ class Queue(RedisObject):
         b_item = b_items[1]
         item = self.unpack(b_item) if b_item else b_item
         return item
-
-    def clear(self):
-        self._redis.delete(self.key)

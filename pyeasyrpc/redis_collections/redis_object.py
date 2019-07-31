@@ -9,9 +9,10 @@ Description:
     redis_object.py
 ----------------------------------------------------------------------------"""
 
-import time
-import msgpack
 import _pickle as pickle
+import time
+
+import msgpack
 
 from .. import redis_connection
 
@@ -19,33 +20,41 @@ _delta_time = None
 
 
 class Packer(object):
+    @staticmethod
     def pack(self, obj):
         raise NotImplementedError()
 
+    @staticmethod
     def unpack(self, packed):
         raise NotImplementedError()
 
 
 class NoPacker(object):
+    @staticmethod
     def pack(self, obj):
         return obj
 
+    @staticmethod
     def unpack(self, packed):
         return packed
 
 
 class MsgPacker(Packer):
+    @staticmethod
     def pack(self, obj):
         return msgpack.packb(obj)
 
+    @staticmethod
     def unpack(self, packed):
         return msgpack.unpackb(packed, raw=False)
 
 
 class PicklePacker(Packer):
+    @staticmethod
     def pack(self, obj):
         return pickle.dumps(obj)
 
+    @staticmethod
     def unpack(self, packed):
         return pickle.loads(packed)
 
@@ -57,9 +66,12 @@ class RedisObject(object):
     Redis_Type = "none"
     _delta_time = {}
 
-    def __init__(self, key, packer=DEFAULT_PACKER, url=None):
+    def __init__(self, key, packer=None, url=None):
+        if not packer:
+            packer = DEFAULT_PACKER
+
         self._key = key
-        self._packer = packer()
+        self._packer = packer
         self._redis = redis_connection.get_redis(url)
 
     def get_type(self):
@@ -85,6 +97,9 @@ class RedisObject(object):
     @property
     def key(self):
         return self._key
+
+    def clear(self):
+        self._redis.delete(self.key)
 
     def pack(self, obj):
         return self._packer.pack(obj)

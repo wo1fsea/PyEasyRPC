@@ -9,6 +9,17 @@ Description:
     rpc_manager.py
 ----------------------------------------------------------------------------"""
 
+import uuid
+
+
+def generate_uuid():
+    """
+    generate a uuid
+    :return: uuid
+    """
+    return str(uuid.uuid4())
+
+
 from .singleton import Singleton
 
 
@@ -29,6 +40,9 @@ class RPCManager(Singleton):
         raise NotImplementedError()
 
     def register_service(self, service_name, method_name_list, enable_multi_instance=True):
+        raise NotImplementedError()
+
+    def unregister_service(self, service_name, uuid):
         raise NotImplementedError()
 
     def service_heartbeat(self, service_name, service_uuid):
