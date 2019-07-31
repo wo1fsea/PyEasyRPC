@@ -9,10 +9,9 @@ Description:
     redis_object.py
 ----------------------------------------------------------------------------"""
 
-import _pickle as pickle
 import time
-
 import msgpack
+import _pickle as pickle
 
 from .. import redis_connection
 

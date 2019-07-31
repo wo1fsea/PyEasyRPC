@@ -84,8 +84,13 @@ class RedisDictTestCase(unittest.TestCase):
 
         # test keys
         self.assertSequenceEqual(sorted(d.keys()), sorted(data.keys()))
+        # test iter
+        self.assertSequenceEqual(sorted(d), sorted(data.keys()))
         # TODO: test values
         # TODO: test items
+        
+        # test redis type
+        self.assertEqual(d.Redis_Type, d.get_type())
 
         # test d2
         self.assertEqual(d2["int"], data["int"])
