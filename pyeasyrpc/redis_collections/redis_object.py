@@ -21,41 +21,41 @@ _delta_time = None
 
 class Packer(object):
     @staticmethod
-    def pack(self, obj):
+    def pack(obj):
         raise NotImplementedError()
 
     @staticmethod
-    def unpack(self, packed):
+    def unpack(packed):
         raise NotImplementedError()
 
 
 class NoPacker(object):
     @staticmethod
-    def pack(self, obj):
+    def pack(obj):
         return obj
 
     @staticmethod
-    def unpack(self, packed):
+    def unpack(packed):
         return packed
 
 
 class MsgPacker(Packer):
     @staticmethod
-    def pack(self, obj):
+    def pack(obj):
         return msgpack.packb(obj)
 
     @staticmethod
-    def unpack(self, packed):
+    def unpack(packed):
         return msgpack.unpackb(packed, raw=False)
 
 
 class PicklePacker(Packer):
     @staticmethod
-    def pack(self, obj):
+    def pack(obj):
         return pickle.dumps(obj)
 
     @staticmethod
-    def unpack(self, packed):
+    def unpack(packed):
         return pickle.loads(packed)
 
 
