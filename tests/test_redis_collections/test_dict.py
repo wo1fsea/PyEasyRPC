@@ -105,7 +105,3 @@ class RedisDictTestCase(unittest.TestCase):
 
         d2.clear()
         self.assertEqual(len(d), 0)
-
-
-if __name__ == '__main__':
-    unittest.main()

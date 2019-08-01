@@ -230,7 +230,3 @@ class RedisSetTestCase(unittest.TestCase):
 
         s0.clear()
         s1.clear()
-
-
-if __name__ == '__main__':
-    unittest.main()
