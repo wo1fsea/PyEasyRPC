@@ -209,6 +209,26 @@ class RedisSetTestCase(unittest.TestCase):
         self.assertEqual(s0, data0.symmetric_difference(data1))
 
         s0.clear()
+        s0.update(data0)
+        s0 -= s1
+        self.assertEqual(s0, data0 - data1)
+
+        s0.clear()
+        s0.update(data0)
+        s0 &= s1
+        self.assertEqual(s0, data0 & data1)
+
+        s0.clear()
+        s0.update(data0)
+        s0 |= s1
+        self.assertEqual(s0, data0 | data1)
+
+        s0.clear()
+        s0.update(data0)
+        s0 ^= s1
+        self.assertEqual(s0, data0 ^ data1)
+
+        s0.clear()
         s1.clear()
 
 
