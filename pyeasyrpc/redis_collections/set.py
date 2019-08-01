@@ -36,6 +36,8 @@ class Set(RedisObject, set):
         Remove and return an arbitrary set element.
         Raises KeyError if the set is empty.
         """
+        if not len(self):
+            raise KeyError()
         b_element = self._redis.spop(self.key)
         return self.unpack(b_element)
 
@@ -94,7 +96,7 @@ class Set(RedisObject, set):
 
     def difference_update(self, other):
         """ Remove all elements of another set from this set. """
-        self._redis.srem(self.key, *other)
+        self._redis.srem(self.key, *map(self.pack, other))
 
     def intersection(self, other):
         """
@@ -122,13 +124,15 @@ class Set(RedisObject, set):
         """
         return self.difference(other).union(other.difference(self))
 
-    def symmetric_difference_update(self, *args, **kwargs):
+    def symmetric_difference_update(self, other):
         """ Update a set with the symmetric difference of itself and another. """
-        self._redis.sadd(*self.symmetric_difference())
+        data = self.symmetric_difference(other)
+        self.clear()
+        self._redis.sadd(self.key, *map(self.pack, data))
 
     def isdisjoint(self, other):
         """ Return True if two sets have a null intersection. """
-        return bool(self.intersection(other))
+        return not self.intersection(other)
 
     def issubset(self, other):
         """ Report whether another set contains this set. """
@@ -150,7 +154,7 @@ class Set(RedisObject, set):
 
     def __iter__(self):
         """ Implement iter(self). """
-        raise NotImplementedError()
+        return iter(self.data)
 
     def __len__(self):
         """ Return len(self). """
@@ -158,7 +162,8 @@ class Set(RedisObject, set):
 
     def __contains__(self, element):
         """ x.__contains__(y) <==> y in x. """
-        return self._redis.sismember(self.key, element)
+        b_element = self.pack(element)
+        return self._redis.sismember(self.key, b_element)
 
     def __eq__(self, other):
         """ Return self==value. """

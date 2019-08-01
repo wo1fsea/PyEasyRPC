@@ -26,9 +26,9 @@ class RedisDictTestCase(unittest.TestCase):
         # test data
         data = {
             "int": 1,
-            "float": 1.1,
+            "float": 2.,
             "string": "string",
-            "dict": {"int": 1, "float": 1.1, "string": "string"},
+            "dict": {"int": 1, "float": 2., "string": "string"},
             "list": [0, "1", 2.0, 3],
             "tuple": (0, "1", 2.0, 3),
         }
