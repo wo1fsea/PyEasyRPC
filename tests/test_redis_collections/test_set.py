@@ -92,6 +92,81 @@ class RedisSetTestCase(unittest.TestCase):
             data0,
             data1
         )
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            set(),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            set(),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+
+        data0 = {1, 2, 3, 4, 5}
+        data1 = {1, 2, 3, 4, 5}
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            set(),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            set(),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+
+        data0 = {1, 2, 3, 4, 5}
+        data1 = {1, 2, 3}
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            set(),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            set(),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+
+        data0 = {1, 2, 3, 4, 5}
+        data1 = {1, 2, 3, 4, 5, 6, 7}
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            Set(redis_key + "0", packer),
+            set(),
+            data0,
+            data1
+        )
+        self.__test_set_op(
+            set(),
+            Set(redis_key + "1", packer),
+            data0,
+            data1
+        )
 
     def __test_set_op(self, s0, s1, data0, data1):
         s0.clear()

@@ -12,7 +12,7 @@ Description:
 from .redis_object import RedisObject
 
 
-class Set(RedisObject, set):
+class Set(RedisObject):
     Redis_Type = "set"
 
     def __init__(self, key, packer=None, url=None):
@@ -114,7 +114,10 @@ class Set(RedisObject, set):
         if isinstance(other, Set):
             self._redis.sinterstore(self.key, self.key, other.key)
         else:
-            self._redis.sadd(*self.data.intersection(other))
+            data = self.data.intersection(other)
+            self.clear()
+            if data:
+                self._redis.sadd(self.key, *map(self.pack, data))
 
     def symmetric_difference(self, other):
         """
@@ -122,13 +125,14 @@ class Set(RedisObject, set):
 
         (i.e. all elements that are in exactly one of the sets.)
         """
-        return self.difference(other).union(other.difference(self))
+        return self.difference(other).union(other.difference(self.data))
 
     def symmetric_difference_update(self, other):
         """ Update a set with the symmetric difference of itself and another. """
         data = self.symmetric_difference(other)
         self.clear()
-        self._redis.sadd(self.key, *map(self.pack, data))
+        if data:
+            self._redis.sadd(self.key, *map(self.pack, data))
 
     def isdisjoint(self, other):
         """ Return True if two sets have a null intersection. """
