@@ -187,8 +187,8 @@ class RPCManager(Singleton):
 
         return 1 - 1. * total_return / total_require
 
-    def get_services(self):
-        return filter(self.get_alive_service_uuid_set, self._service_dict.keys())
+    def get_service_list(self):
+        return list(filter(self.get_alive_service_uuid_set, self._service_dict.keys()))
 
     def get_alive_service_uuid_low_loss(self, service_name):
         service_uuid_set = self.get_service_uuid_set(service_name)

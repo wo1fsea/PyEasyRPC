@@ -63,13 +63,20 @@ class RPCManagerTestCase(unittest.TestCase):
 
         self.assertTrue(isinstance(context.exception, TypeError))
 
+        self.assertSequenceEqual([service_name0], self._rpc_manager.get_service_list())
+
         self._rpc_manager.unregister_service(service_name0, service_uuid)
         self.assertFalse(self._rpc_manager.get_alive_service_uuid_set(service_name0))
+
+        self.assertEqual(None, self._rpc_manager.get_alive_service_uuid_random(service_name0))
+        self.assertEqual(None, self._rpc_manager.get_alive_service_uuid_low_loss(service_name0))
+
+        self.assertSequenceEqual([], self._rpc_manager.get_service_list())
 
         service_uuid = self._rpc_manager.register_service(
             **data0
         )
-        time.sleep(self.service_til + 0.1)
+        time.sleep(self.service_til * 2)
         self.assertFalse(self._rpc_manager.get_alive_service_uuid_set(service_name0))
         self._rpc_manager.unregister_service(service_name0, service_uuid)
 
