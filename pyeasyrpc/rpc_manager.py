@@ -10,7 +10,7 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import random
-import uuid
+import shortuuid
 from .singleton import Singleton
 from .redis_collections.dict import Dict
 from .redis_collections.set import Set
@@ -25,7 +25,7 @@ def generate_uuid():
     generate a uuid
     :return: uuid
     """
-    return str(uuid.uuid4())
+    return str(shortuuid.uuid())
 
 
 class RPCManager(Singleton):
@@ -45,15 +45,26 @@ class RPCManager(Singleton):
     def gen_rpc_uuid():
         return generate_uuid()
 
+    def __init__(self, rpc_group_name="default_group", data_packer=None, redis_url=None):
+        self._group_name = rpc_group_name
+        self._data_packer = data_packer
+        self._redis_url = redis_url
+
+        self._service_dict = Dict(
+            self.service_dict_key,
+            packer=self._data_packer,
+            url=redis_url
+        )
+
     @property
     def group_key(self):
         return self.GROUP_KEY_PATTERN.format(group_name=self._group_name)
 
     @property
-    def service_list_key(self):
-        return ".".join([self.group_key, "service_list"])
+    def service_dict_key(self):
+        return ".".join([self.group_key, "service_dict"])
 
-    def get_service_instance_list_key(self, service_name):
+    def get_service_uuid_set_key(self, service_name):
         return ".".join(
             [
                 self.group_key,
@@ -62,10 +73,10 @@ class RPCManager(Singleton):
             ]
         )
 
-    def get_service_instance_list(self, service_name):
-        service_instance_list_key = self.get_service_instance_list_key(service_name)
-        service_instance_list = Set(service_instance_list_key, packer=self._data_packer, url=self._redis_url)
-        return service_instance_list
+    def get_service_uuid_set(self, service_name):
+        service_uuid_set_key = self.get_service_uuid_set_key(service_name)
+        service_uuid_set = Set(service_uuid_set_key, packer=self._data_packer, url=self._redis_url)
+        return service_uuid_set
 
     def get_service_instance_key(self, service_name, service_uuid):
         return ".".join(
@@ -80,152 +91,142 @@ class RPCManager(Singleton):
         service_instance_key = self.get_service_instance_key(service_name, service_uuid)
         return Dict(service_instance_key)
 
-    def __init__(self, rpc_group_name="default_group", data_packer=None, redis_url=None):
-        self._group_name = rpc_group_name
-        self._data_packer = data_packer
-        self._redis_url = redis_url
-
-        self._service_list = Dict(
-            self.service_list_key,
-            packer=self._data_packer,
-            url=redis_url
-        )
-
     def register_service(self, service_name, method_list, enable_multi_instance=True):
         service_uuid = self.gen_service_uuid()
 
-        service_data = self._service_list.get(service_name)
-        service_instance_list = self.get_service_instance_list(service_name)
+        service_data = self._service_dict.get(service_name)
+        service_uuid_set = self.get_service_uuid_set(service_name)
 
-        if service_data and self.get_alive_service_instance(service_name):
-            if not enable_multi_instance:
+        if service_data and self.get_alive_service_uuid_set(service_name):
+            if not enable_multi_instance or not service_data["enable_multi_instance"]:
                 raise TypeError("service instance already exist.")
             if method_list != service_data["method_list"]:
                 raise TypeError("can not register same service with different methods.")
+
+            service_data["last_register_time"] = self._service_dict.time
         else:
-            service_instance_list_key = self.get_service_instance_list_key(service_name)
-            self._service_list[service_name] = {
+            service_uuid_set_key = self.get_service_uuid_set_key(service_name)
+            self._service_dict[service_name] = {
                 "service_name": service_name,
-                "method_list": method_list,
+                "method_list": sorted(method_list),
+                "enable_multi_instance": enable_multi_instance,
 
-                "service_instance_list_id": service_instance_list_key,
+                "service_uuid_set_key": service_uuid_set_key,
 
-                "register_time": self._service_list.time,
-                "last_register_time": self._service_list.time
+                "register_time": self._service_dict.time,
+                "last_register_time": self._service_dict.time
             }
 
-            service_instance_list.clear()
+            service_uuid_set.clear()
 
-        service_instance_list.add(service_uuid)
+        service_uuid_set.add(service_uuid)
 
-        service_instance_data = self.get_service_instance(service_name, service_uuid)
-        service_instance_data.clear()
-        service_instance_data.update(
+        # init service data
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        service_instance.clear()
+        service_instance.update(
             {
+                "service_name": service_name,
                 "service_instance_id": service_uuid,
-                "last_heartbeat_time": service_instance_data.time,
+                "last_heartbeat_time": service_instance.time,
 
                 "last_call_require_time": 0.,
                 "last_call_return_time": 0.,
-
-                "total_require": 0,
-                "total_return": 0,
             }
         )
+
+        service_instance.set_raw("total_require", 0)
+        service_instance.set_raw("total_return", 0)
 
         return service_uuid
 
     def unregister_service(self, service_name, service_uuid):
-        service_instance_list = self.get_service_instance_list(service_name)
-        service_instance_list.discard(service_uuid)
-        if not self.get_alive_service_instance(service_name):
-            self._service_list.pop(service_name, None)
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        service_instance.clear()
+
+        service_uuid_set = self.get_service_uuid_set(service_name)
+        service_uuid_set.discard(service_uuid)
+
+        if not self.get_alive_service_uuid_set(service_name):
+            self._service_dict.pop(service_name, None)
 
     def service_heartbeat(self, service_name, service_uuid):
         raise NotImplementedError()
 
-    def get_alive_service_instance(self, service_name):
-        service_instance_list = self.get_service_instance_list(service_name)
+    def get_alive_service_uuid_set(self, service_name):
+        service_uuid_set = self.get_service_uuid_set(service_name)
         deads = list(
             filter(
                 lambda x: not self.check_service_instance_alive(service_name, x),
-                service_instance_list
+                service_uuid_set
             )
         )
         if deads:
-            service_instance_list.difference_update(deads)
-        return service_instance_list
+            service_uuid_set.difference_update(deads)
+            for service_uuid in deads:
+                service_instance = self.get_service_instance(service_name, service_uuid)
+                service_instance.clear()
+
+        return service_uuid_set
 
     def check_service_instance_alive(self, service_name, service_uuid):
-        service_data = self.get_service_instance(service_name, service_uuid)
-        if not service_data.exists:
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        if not service_instance.exists:
             return False
 
-        return service_data.time - service_data["last_heartbeat_time"] < self.SERVICE_TTL
+        return service_instance.time - service_instance["last_heartbeat_time"] < self.SERVICE_TTL
 
     def check_service_instance_loss_rate(self, service_name, service_uuid):
-        service_data = self.get_service_instance(service_name, service_uuid)
-        if not service_data.exists or \
-                service_data.time - service_data["last_heartbeat_time"] > self.SERVICE_TTL:
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        if not service_instance.exists or \
+                service_instance.time - service_instance["last_heartbeat_time"] > self.SERVICE_TTL:
             return 1.1
 
-        total_return = max(1., service_data["total_return"])
-        total_require = max(1., service_data["total_require"])
+        total_return = max(1., float(service_instance.get_raw("total_return")))
+        total_require = max(1., float(service_instance.get_raw("total_require")))
 
         return 1 - 1. * total_return / total_require
 
     def get_services(self):
-        return filter(self.get_alive_service_instance, self._service_list.keys())
+        return filter(self.get_alive_service_uuid_set, self._service_dict.keys())
 
-    def get_service_instances(self, service_name):
-        return self.get_alive_service_instance(service_name)
-
-    def get_service_instance_low_loss(self, service_name):
-        service_instance_list = self.get_service_instance_list(service_name)
-        service_instances = sorted(
-            service_instance_list,
+    def get_alive_service_uuid_low_loss(self, service_name):
+        service_uuid_set = self.get_service_uuid_set(service_name)
+        service_uuid_set = sorted(
+            service_uuid_set,
             key=lambda x: self.check_service_instance_loss_rate(service_name, x)
         )
-        if service_instances:
-            return service_instances[0]
+        if service_uuid_set:
+            return service_uuid_set[0]
         else:
             return None
 
-    def get_service_instance_random(self, service_name):
-        instances = self.get_alive_service_instance(service_name)
-        if not instances:
+    def get_alive_service_uuid_random(self, service_name):
+        uuids = self.get_alive_service_uuid_set(service_name)
+        if not uuids:
             return None
         else:
-            return random.choice(list(instances))
+            return random.choice(list(uuids))
 
     def get_method_list(self, service_name):
-        if self.get_alive_service_instance(service_name):
-            return self._service_list.get(service_name, {}).get("method_list", [])
+        if self.get_alive_service_uuid_set(service_name):
+            return self._service_dict.get(service_name, {}).get("method_list", [])
         else:
             return []
 
-    def call_method_by_service_name(self, service_name, method_name, args, kwargs):
-        raise NotImplementedError()
-
-    def call_method_by_service_uuid(self, service_uuid, method_name, args, kwargs):
+    def call_method(self, service_name, service_uuid, method_name, args, kwargs):
         raise NotImplementedError()
 
     def get_call_method_result(self, rpc_uuid):
         raise NotImplementedError()
 
-    def block_call_method_by_service_name(self, service_name, method_name, args, kwargs):
+    def block_call_method(self, service_name, service_uuid, method_name, args, kwargs):
         raise NotImplementedError()
 
-    def block_call_method_by_service_uuid(self, service_uuid, method_name, args, kwargs):
+    async def async_call_method(self, service_name, service_uuid, method_name, args, kwargs):
         raise NotImplementedError()
 
-    async def async_call_method_by_service_name(self, service_name, method_name, args, kwargs):
-        raise NotImplementedError()
-
-    async def async_call_method_by_service_uuid(self, service_name, method_name, args, kwargs):
-        raise NotImplementedError()
-
-    def get_call_method_request(self, service_uuid, method_name):
+    def get_call_method_request(self, service_name, service_uuid, method_name):
         raise NotImplementedError()
 
     def set_call_method_result(self, rpc_uuid, result):

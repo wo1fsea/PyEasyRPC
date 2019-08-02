@@ -26,8 +26,9 @@ DEFAULT_RPC_DATA = {
 DEFAULT_SERVICE_DATA = {
     "service_name": "",
     "method_list": [],
+    "enable_multi_instance": True,
 
-    "service_instance_list_id": None,
+    "service_uuid_set_key": None,
 
     "register_time": None,
     "last_register_time": None

@@ -10,9 +10,9 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import unittest
+import time
 from pyeasyrpc.redis_collections.redis_object import RedisObject, MsgPacker, PicklePacker
 from pyeasyrpc.redis_collections.dict import Dict
-import time
 
 
 class RedisObjectTestCase(unittest.TestCase):

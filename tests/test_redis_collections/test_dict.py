@@ -112,9 +112,6 @@ class RedisDictTestCase(unittest.TestCase):
         # test ==
         self.assertEqual(d2, d.data)
 
-        d2.clear()
-        self.assertEqual(len(d), 0)
-
         # raw
         d.set_raw("count", 1)
         d.increase_by("count", 10)
@@ -123,3 +120,7 @@ class RedisDictTestCase(unittest.TestCase):
 
         d.increase_by("count", 0.5)
         self.assertEqual(float(d.get_raw("count")), 11.5)
+
+        # clean up
+        d2.clear()
+        self.assertEqual(len(d), 0)
