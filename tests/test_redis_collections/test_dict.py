@@ -100,8 +100,26 @@ class RedisDictTestCase(unittest.TestCase):
         self.assertSequenceEqual(d2["list"], data["list"])
         self.assertSequenceEqual(d2["tuple"], data["tuple"])
 
+        # test pop
+        self.assertEqual(d.pop("int"), 1)
+
+        with self.assertRaises(KeyError) as context:
+            d.pop("int")
+        self.assertTrue(isinstance(context.exception, KeyError))
+
+        self.assertEqual(d.pop("int", None), None)
+
         # test ==
         self.assertEqual(d2, d.data)
 
         d2.clear()
         self.assertEqual(len(d), 0)
+
+        # raw
+        d.set_raw("count", 1)
+        d.increase_by("count", 10)
+
+        self.assertEqual(int(d.get_raw("count")), 11)
+
+        d.increase_by("count", 0.5)
+        self.assertEqual(float(d.get_raw("count")), 11.5)

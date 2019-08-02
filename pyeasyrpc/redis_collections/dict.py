@@ -76,3 +76,18 @@ class Dict(RedisObject, UserDict):
 
     def copy(self):
         return self.data
+
+    # 4 redis hash
+    def get_raw(self, key):
+        return self._redis.hget(self.key, self.pack(key))
+
+    def set_raw(self, key, value):
+        self._redis.hset(self.key, self.pack(key), value)
+
+    def increase_by(self, key, value):
+        if isinstance(value, int):
+            self._redis.hincrby(self.key, self.pack(key), value)
+        elif isinstance(value, float):
+            self._redis.hincrbyfloat(self.key, self.pack(key), value)
+        else:
+            raise TypeError()
