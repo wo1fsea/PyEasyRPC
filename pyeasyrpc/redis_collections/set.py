@@ -96,7 +96,8 @@ class Set(RedisObject):
 
     def difference_update(self, other):
         """ Remove all elements of another set from this set. """
-        self._redis.srem(self.key, *map(self.pack, other))
+        if other:
+            self._redis.srem(self.key, *map(self.pack, other))
 
     def intersection(self, other):
         """

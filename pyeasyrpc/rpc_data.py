@@ -19,6 +19,7 @@ DEFAULT_RPC_DATA = {
     "exception": None,
 
     "request_time": None,
+    "expire_time": None,
     "return_time": None,
 }
 
@@ -27,8 +28,6 @@ DEFAULT_SERVICE_DATA = {
     "method_list": [],
 
     "service_instance_list_id": None,
-
-    "request_queue_id": None,
 
     "register_time": None,
     "last_register_time": None
@@ -40,4 +39,7 @@ DEFAULT_SERVICE_INSTANCE_DATA = {
 
     "last_call_require_time": None,
     "last_call_return_time": None,
+
+    "total_require": 0,
+    "total_return": 0,
 }
