@@ -86,7 +86,7 @@ class RPCManagerTestCase(unittest.TestCase):
 
         time.sleep(self.service_til * 2)
 
-        self.assertEqual(self._rpc_manager.get_alive_service_uuid_set(service_name0), 0)
+        self.assertEqual(len(self._rpc_manager.get_alive_service_uuid_set(service_name0)), 0)
         self._rpc_manager.unregister_service(service_name0, service_uuid)
 
         service_uuid = self._rpc_manager.register_service(
