@@ -41,21 +41,45 @@ class NoPacker(object):
 class MsgPacker(Packer):
     @staticmethod
     def pack(obj):
-        return msgpack.packb(obj)
+        try:
+            packed = msgpack.packb(obj)
+        except Exception as ex:
+            # TODO: do log
+            print("MsgPacker Exception:", ex)
+            packed = obj
+        return packed
 
     @staticmethod
     def unpack(packed):
-        return msgpack.unpackb(packed, raw=False)
+        try:
+            unpacked = msgpack.unpackb(packed, raw=False)
+        except Exception as ex:
+            # TODO: do log
+            print("MsgPacker Exception:", ex)
+            unpacked = packed
+        return unpacked
 
 
 class PicklePacker(Packer):
     @staticmethod
     def pack(obj):
-        return pickle.dumps(obj)
+        try:
+            packed = pickle.dumps(obj)
+        except Exception as ex:
+            # TODO: do log
+            print("PicklePacker Exception:", ex)
+            packed = obj
+        return packed
 
     @staticmethod
     def unpack(packed):
-        return pickle.loads(packed)
+        try:
+            unpacked = pickle.loads(packed)
+        except Exception as ex:
+            # TODO: do log
+            print("PicklePacker Exception:", ex)
+            unpacked = packed
+        return unpacked
 
 
 DEFAULT_PACKER = PicklePacker

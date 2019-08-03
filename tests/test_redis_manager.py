@@ -39,12 +39,12 @@ class RPCManagerTestCase(unittest.TestCase):
 
         data0_1 = {
             "service_name": service_name0,
-            "method_list": [
+            "method_list": sorted([
                 "test_method0",
                 "test_method1",
                 "test_method2",
                 "test_method3",
-            ]
+            ])
         }
 
         service_uuid = self._rpc_manager.register_service(
@@ -56,11 +56,12 @@ class RPCManagerTestCase(unittest.TestCase):
         self.assertEqual(service_uuid, self._rpc_manager.get_alive_service_uuid_low_loss(service_name0))
         self.assertEqual(service_uuid, self._rpc_manager.get_alive_service_uuid_random(service_name0))
 
+        self.assertSequenceEqual(data0["method_list"], self._rpc_manager.get_method_list(service_name0))
+
         with self.assertRaises(TypeError) as context:
             self._rpc_manager.register_service(
                 **data0_1
             )
-
         self.assertTrue(isinstance(context.exception, TypeError))
 
         self.assertSequenceEqual([service_name0], self._rpc_manager.get_service_list())
@@ -76,8 +77,16 @@ class RPCManagerTestCase(unittest.TestCase):
         service_uuid = self._rpc_manager.register_service(
             **data0
         )
+        service_uuid1 = self._rpc_manager.register_service(
+            **data0
+        )
+        self.assertEqual(len(self._rpc_manager.get_service_uuid_set(service_name0)), 2)
+        self._rpc_manager.unregister_service(service_name0, service_uuid1)
+        self.assertEqual(len(self._rpc_manager.get_service_uuid_set(service_name0)), 1)
+
         time.sleep(self.service_til * 2)
-        self.assertFalse(self._rpc_manager.get_alive_service_uuid_set(service_name0))
+
+        self.assertEqual(self._rpc_manager.get_alive_service_uuid_set(service_name0), 0)
         self._rpc_manager.unregister_service(service_name0, service_uuid)
 
         service_uuid = self._rpc_manager.register_service(

@@ -30,7 +30,8 @@ class RedisDictTestCase(unittest.TestCase):
             "string": "string",
             "dict": {"int": 1, "float": 2., "string": "string"},
             "list": [0, "1", 2.0, 3],
-            "tuple": (0, "1", 2.0, 3),
+            # MsgPacker do not support tuple
+            "tuple": (0, "1", 2.0, 3) if packer is PicklePacker else [0, "1", 2.0, 3],
         }
         d = Dict(redis_key, packer)
         # get the same Dict by key
@@ -71,6 +72,9 @@ class RedisDictTestCase(unittest.TestCase):
         del d["not found"]
         del d["found"]
 
+        with self.assertRaises(KeyError) as context:
+            del d["not found"]
+
         self.assertEqual("found" in d, False)
         self.assertEqual("found" not in d, True)
         self.assertEqual(d.get("found"), None)
@@ -86,8 +90,12 @@ class RedisDictTestCase(unittest.TestCase):
         self.assertSequenceEqual(sorted(d.keys()), sorted(data.keys()))
         # test iter
         self.assertSequenceEqual(sorted(d), sorted(data.keys()))
-        # TODO: test values
-        # TODO: test items
+        # test values
+        self.assertTrue(all(map(lambda x: x in data.values(), d.values())))
+        self.assertTrue(all(map(lambda x: x in d.values(), data.values())))
+        # test items
+        self.assertTrue(all(map(lambda x: x in data.items(), d.items())))
+        self.assertTrue(all(map(lambda x: x in d.items(), data.items())))
 
         # test redis type
         self.assertEqual(d.Redis_Type, d.get_type())
@@ -120,6 +128,11 @@ class RedisDictTestCase(unittest.TestCase):
 
         d.increase_by("count", 0.5)
         self.assertEqual(float(d.get_raw("count")), 11.5)
+
+        with self.assertRaises(TypeError) as context:
+            d.increase_by("count", "1")
+
+        self.assertEqual(d, d.copy())
 
         # clean up
         d2.clear()
