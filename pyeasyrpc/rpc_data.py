@@ -10,10 +10,13 @@ Description:
 ----------------------------------------------------------------------------"""
 
 DEFAULT_RPC_DATA = {
-    "rpc_id": None,
+    "rpc_uuid": None,
 
     "request_mailbox": None,
     "return_mailbox": None,
+
+    "service_name": None,
+    "service_uuid": None,
 
     "method_name": "",
     "args": [],

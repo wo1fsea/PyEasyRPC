@@ -46,6 +46,10 @@ class RPCManager(Singleton):
         return generate_uuid()
 
     @staticmethod
+    def gen_client_uuid():
+        return generate_uuid()
+
+    @staticmethod
     def gen_rpc_uuid():
         return generate_uuid()
 
@@ -105,6 +109,16 @@ class RPCManager(Singleton):
                 self._group_name,
                 service_name,
                 service_uuid
+            ]
+        )
+
+    def get_client_mailbox_channel(self, service_name, service_uuid, client_uuid):
+        return ".".join(
+            [
+                self._group_name,
+                service_name,
+                service_uuid,
+                client_uuid
             ]
         )
 
@@ -201,12 +215,12 @@ class RPCManager(Singleton):
         if not service_instance.exists:
             return False
 
-        return self.time - service_instance["last_heartbeat_time"] < self.SERVICE_TTL
+        return self.time - service_instance.get("last_heartbeat_time", 0) < self.SERVICE_TTL
 
     def check_service_instance_loss_rate(self, service_name, service_uuid):
         service_instance = self.get_service_instance(service_name, service_uuid)
         if not service_instance.exists or \
-                self.time - service_instance["last_heartbeat_time"] > self.SERVICE_TTL:
+                self.time - service_instance.get("last_heartbeat_time", 0) > self.SERVICE_TTL:
             return 1.1
 
         total_return = max(1., float(service_instance.get_raw("total_return")))
@@ -241,14 +255,33 @@ class RPCManager(Singleton):
         else:
             return []
 
-    def call_method(self, service_name, service_uuid, return_mall_box, method_name, args, kwargs):
-        rpc_uuid = self.gen_rpc_uuid()
-        request_mailbox = self.get_service_instance_mailbox_channel(service_name, service_uuid)
-        rpc_data = {
-            "rpc_id": rpc_uuid,
+    def _increase_total_request(self, service_name, service_uuid):
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        if service_instance.exists:
+            service_instance.increase_by("total_require", 1)
 
-            "request_mailbox": request_mailbox,
-            "return_mailbox": return_mall_box,
+    def _increase_total_return(self, service_name, service_uuid):
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        if service_instance.exists:
+            service_instance.increase_by("total_return", 1)
+
+    def set_call_method_request(self,
+                                return_mailbox_channel,
+                                service_name, service_uuid, method_name, args, kwargs
+                                ):
+        rpc_uuid = self.gen_rpc_uuid()
+        request_mailbox_channel = self.get_service_instance_mailbox_channel(service_name, service_uuid)
+        request_mailbox = Mailbox(request_mailbox_channel, url=self._redis_url, packer=self._data_packer)
+        request_time = self.time
+        expire_time = request_time + self.RPC_EXPIRE
+        rpc_data = {
+            "rpc_uuid": rpc_uuid,
+
+            "request_mailbox": request_mailbox_channel,
+            "return_mailbox": return_mailbox_channel,
+
+            "service_name": service_name,
+            "service_uuid": service_uuid,
 
             "method_name": method_name,
             "args": args,
@@ -256,26 +289,37 @@ class RPCManager(Singleton):
             "return_value": None,
             "exception": None,
 
-            "request_time": self.time,
-            "expire_time": None,
+            "request_time": request_time,
+            "expire_time": expire_time,
             "return_time": None,
         }
 
-        mailbox = Mailbox(request_mailbox)
-        mailbox.set_message(rpc_data)
-        return rpc_uuid
+        request_mailbox.set_message(rpc_data)
 
-    def get_call_method_result(self, rpc_uuid):
-        raise NotImplementedError()
+        self._increase_total_request(service_name, service_uuid)
 
-    def block_call_method(self, service_name, service_uuid, method_name, args, kwargs):
-        raise NotImplementedError()
+        return rpc_uuid, expire_time
 
-    async def async_call_method(self, service_name, service_uuid, method_name, args, kwargs):
-        raise NotImplementedError()
+    def set_call_method_result(self, rpc_data):
+        return_mailbox = Mailbox(rpc_data["return_mailbox"], url=self._redis_url, packer=self._data_packer)
+        return_mailbox.set_message(rpc_data)
+        self._increase_total_return(rpc_data["service_name"], rpc_data["service_uuid"])
 
-    def get_call_method_request(self, service_name, service_uuid, method_name):
-        raise NotImplementedError()
+    def get_call_method_request(self, request_mailbox):
+        return request_mailbox.get_message()
 
-    def set_call_method_result(self, rpc_uuid, result):
-        raise NotImplementedError()
+    def get_call_method_result_with_uuid(self, return_mailbox, rpc_uuid, expire_time):
+        timeout = expire_time - self.time
+
+        while True:
+            if timeout > 0:
+                rpc_data = return_mailbox.get_message(timeout)
+            else:
+                return None
+
+            if rpc_data and rpc_data.get("rpc_uuid") == rpc_uuid:
+                return rpc_data
+
+    def get_call_method_result(self, return_mailbox):
+        rpc_data = return_mailbox.get_message()
+        return rpc_data
