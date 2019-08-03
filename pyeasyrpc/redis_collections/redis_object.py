@@ -45,7 +45,7 @@ class MsgPacker(Packer):
             packed = msgpack.packb(obj)
         except Exception as ex:
             # TODO: do log
-            print("MsgPacker Exception:", ex)
+            print("MsgPacker Exception:", ex, type(obj), obj)
             packed = obj
         return packed
 
@@ -55,7 +55,7 @@ class MsgPacker(Packer):
             unpacked = msgpack.unpackb(packed, raw=False)
         except Exception as ex:
             # TODO: do log
-            print("MsgPacker Exception:", ex)
+            print("MsgPacker Exception:", ex, type(packed), packed)
             unpacked = packed
         return unpacked
 
@@ -67,7 +67,7 @@ class PicklePacker(Packer):
             packed = pickle.dumps(obj)
         except Exception as ex:
             # TODO: do log
-            print("PicklePacker Exception:", ex)
+            print("PicklePacker Exception:", ex, type(obj), obj)
             packed = obj
         return packed
 
@@ -77,7 +77,7 @@ class PicklePacker(Packer):
             unpacked = pickle.loads(packed)
         except Exception as ex:
             # TODO: do log
-            print("PicklePacker Exception:", ex)
+            print("PicklePacker Exception:", ex, type(packed), packed)
             unpacked = packed
         return unpacked
 

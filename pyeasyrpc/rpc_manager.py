@@ -151,7 +151,15 @@ class RPCManager(Singleton):
             self._service_dict.pop(service_name, None)
 
     def service_heartbeat(self, service_name, service_uuid):
-        raise NotImplementedError()
+        if service_uuid not in self.get_service_uuid_set(service_name):
+            return False
+
+        service_instance = self.get_service_instance(service_name, service_uuid)
+        if not service_instance.exists:
+            return False
+
+        service_instance["last_heartbeat_time"] = service_instance.time
+        return True
 
     def get_alive_service_uuid_set(self, service_name):
         service_uuid_set = self.get_service_uuid_set(service_name)

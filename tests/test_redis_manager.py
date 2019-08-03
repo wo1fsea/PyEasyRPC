@@ -17,28 +17,16 @@ from pyeasyrpc.rpc_manager import RPCManager
 class RPCManagerTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.service_til = 0.5
+        self.service_ttl = 0.5
         self.service_heartbeat_interval = 0.1
-        RPCManager.SERVICE_TTL = self.service_til
+        RPCManager.SERVICE_TTL = self.service_ttl
         RPCManager.SERVICE_HEARTBEAT_INTERVAL = self.service_heartbeat_interval
-        self._rpc_manager = RPCManager()
 
-    def test_register_service(self):
-        service_name0 = "test0"
+        self.rpc_manager = RPCManager()
 
-        data0 = {
-            "service_name": service_name0,
-            "method_list": [
-                "test_method0",
-                "test_method1",
-                "test_method2",
-                "test_method3",
-                "test_method4",
-            ]
-        }
-
-        data0_1 = {
-            "service_name": service_name0,
+        self.service_name0 = "test0"
+        self.service_data0 = {
+            "service_name": self.service_name0,
             "method_list": sorted([
                 "test_method0",
                 "test_method1",
@@ -47,58 +35,124 @@ class RPCManagerTestCase(unittest.TestCase):
             ])
         }
 
-        service_uuid = self._rpc_manager.register_service(
-            **data0
+        self.service_data0_1 = {
+            "service_name": self.service_name0,
+            "method_list": sorted([
+                "test_method0",
+                "test_method1",
+                "test_method2",
+            ])
+        }
+
+        self.service_name1 = "test1"
+        self.service_data1 = {
+            "service_name": self.service_name1,
+            "method_list": sorted([
+                "test_method4",
+                "test_method5",
+            ])
+        }
+
+    def test_register_service(self):
+        service_uuid = self.rpc_manager.register_service(
+            **self.service_data0
         )
 
-        self.assertTrue(service_uuid in self._rpc_manager.get_service_uuid_set(service_name0))
+        self.assertTrue(service_uuid in self.rpc_manager.get_service_uuid_set(self.service_name0))
 
-        self.assertEqual(service_uuid, self._rpc_manager.get_alive_service_uuid_low_loss(service_name0))
-        self.assertEqual(service_uuid, self._rpc_manager.get_alive_service_uuid_random(service_name0))
+        self.assertEqual(
+            service_uuid,
+            self.rpc_manager.get_alive_service_uuid_low_loss(self.service_name0)
+        )
+        self.assertEqual(
+            service_uuid,
+            self.rpc_manager.get_alive_service_uuid_random(self.service_name0)
+        )
 
-        self.assertSequenceEqual(data0["method_list"], self._rpc_manager.get_method_list(service_name0))
+        self.assertSequenceEqual(
+            self.service_data0["method_list"],
+            self.rpc_manager.get_method_list(self.service_name0)
+        )
 
         with self.assertRaises(TypeError) as context:
-            self._rpc_manager.register_service(
-                **data0_1
+            self.rpc_manager.register_service(
+                **self.service_data0_1
             )
         self.assertTrue(isinstance(context.exception, TypeError))
 
-        self.assertSequenceEqual([service_name0], self._rpc_manager.get_service_list())
+        self.assertSequenceEqual([self.service_name0], self.rpc_manager.get_service_list())
 
-        self._rpc_manager.unregister_service(service_name0, service_uuid)
-        self.assertFalse(self._rpc_manager.get_alive_service_uuid_set(service_name0))
+        self.rpc_manager.unregister_service(self.service_name0, service_uuid)
+        self.assertFalse(self.rpc_manager.get_alive_service_uuid_set(self.service_name0))
 
-        self.assertEqual(None, self._rpc_manager.get_alive_service_uuid_random(service_name0))
-        self.assertEqual(None, self._rpc_manager.get_alive_service_uuid_low_loss(service_name0))
+        self.assertEqual(None, self.rpc_manager.get_alive_service_uuid_random(self.service_name0))
+        self.assertEqual(None, self.rpc_manager.get_alive_service_uuid_low_loss(self.service_name0))
 
-        self.assertSequenceEqual([], self._rpc_manager.get_service_list())
+        self.assertSequenceEqual([], self.rpc_manager.get_service_list())
 
-        service_uuid = self._rpc_manager.register_service(
-            **data0
+        service_uuid = self.rpc_manager.register_service(
+            **self.service_data0
         )
-        service_uuid1 = self._rpc_manager.register_service(
-            **data0
+        service_uuid1 = self.rpc_manager.register_service(
+            **self.service_data0
         )
-        self.assertEqual(len(self._rpc_manager.get_service_uuid_set(service_name0)), 2)
-        self._rpc_manager.unregister_service(service_name0, service_uuid1)
-        self.assertEqual(len(self._rpc_manager.get_service_uuid_set(service_name0)), 1)
+        self.assertEqual(len(self.rpc_manager.get_service_uuid_set(self.service_name0)), 2)
+        self.rpc_manager.unregister_service(self.service_name0, service_uuid1)
+        self.assertEqual(len(self.rpc_manager.get_service_uuid_set(self.service_name0)), 1)
 
-        time.sleep(self.service_til * 2)
+        time.sleep(self.service_ttl * 2)
 
-        self.assertEqual(len(self._rpc_manager.get_alive_service_uuid_set(service_name0)), 0)
-        self._rpc_manager.unregister_service(service_name0, service_uuid)
+        self.assertEqual(len(self.rpc_manager.get_alive_service_uuid_set(self.service_name0)), 0)
+        self.rpc_manager.unregister_service(self.service_name0, service_uuid)
 
-        service_uuid = self._rpc_manager.register_service(
+        service_uuid = self.rpc_manager.register_service(
             enable_multi_instance=False,
-            **data0
+            **self.service_data0
         )
 
         with self.assertRaises(TypeError) as context:
-            self._rpc_manager.register_service(
-                **data0
+            self.rpc_manager.register_service(
+                **self.service_data0
             )
 
         self.assertTrue(isinstance(context.exception, TypeError))
         # clean up
-        self._rpc_manager.unregister_service(service_name0, service_uuid)
+        self.rpc_manager.unregister_service(self.service_name0, service_uuid)
+
+    def test_heartbeat(self):
+        service_uuid = self.rpc_manager.register_service(
+            **self.service_data0
+        )
+
+        self.assertTrue(self.rpc_manager.check_service_instance_alive(self.service_name0, service_uuid))
+
+        time.sleep(self.service_ttl / 3)
+        self.assertTrue(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
+        time.sleep(self.service_ttl / 3)
+        self.assertTrue(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
+        time.sleep(self.service_ttl / 3)
+        self.assertTrue(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
+        time.sleep(self.service_ttl / 3)
+
+        self.assertTrue(self.rpc_manager.check_service_instance_alive(self.service_name0, service_uuid))
+
+        time.sleep(self.service_ttl)
+        self.assertFalse(self.rpc_manager.check_service_instance_alive(self.service_name0, service_uuid))
+
+        # force delete service instance
+        service_uuid = self.rpc_manager.register_service(
+            **self.service_data0
+        )
+        self.assertTrue(self.rpc_manager.check_service_instance_alive(self.service_name0, service_uuid))
+
+        self.rpc_manager.get_service_instance(self.service_name0, service_uuid).clear()
+        self.assertFalse(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
+
+        # force delete service instance
+        service_uuid = self.rpc_manager.register_service(
+            **self.service_data0
+        )
+        self.assertTrue(self.rpc_manager.check_service_instance_alive(self.service_name0, service_uuid))
+
+        self.rpc_manager.get_service_uuid_set(self.service_name0).discard(service_uuid)
+        self.assertFalse(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
