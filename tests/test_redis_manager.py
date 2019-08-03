@@ -156,3 +156,4 @@ class RPCManagerTestCase(unittest.TestCase):
 
         self.rpc_manager.get_service_uuid_set(self.service_name0).discard(service_uuid)
         self.assertFalse(self.rpc_manager.service_heartbeat(self.service_name0, service_uuid))
+

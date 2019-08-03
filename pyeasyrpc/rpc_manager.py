@@ -91,6 +91,15 @@ class RPCManager(Singleton):
         service_instance_key = self.get_service_instance_key(service_name, service_uuid)
         return Dict(service_instance_key)
 
+    def get_service_instance_mailbox_channel(self, service_name, service_uuid):
+        return ".".join(
+            [
+                self._group_name,
+                service_name,
+                service_uuid
+            ]
+        )
+
     def register_service(self, service_name, method_list, enable_multi_instance=True):
         service_uuid = self.gen_service_uuid()
 
@@ -127,7 +136,7 @@ class RPCManager(Singleton):
         service_instance.update(
             {
                 "service_name": service_name,
-                "service_instance_id": service_uuid,
+                "service_uuid": service_uuid,
                 "last_heartbeat_time": service_instance.time,
 
                 "last_call_require_time": 0.,
@@ -152,10 +161,12 @@ class RPCManager(Singleton):
 
     def service_heartbeat(self, service_name, service_uuid):
         if service_uuid not in self.get_service_uuid_set(service_name):
+            self.get_service_instance(service_name, service_uuid).clear()
             return False
 
         service_instance = self.get_service_instance(service_name, service_uuid)
         if not service_instance.exists:
+            self.get_service_uuid_set(service_name).discard(service_uuid)
             return False
 
         service_instance["last_heartbeat_time"] = service_instance.time
@@ -222,8 +233,25 @@ class RPCManager(Singleton):
         else:
             return []
 
-    def call_method(self, service_name, service_uuid, method_name, args, kwargs):
-        raise NotImplementedError()
+    def call_method(self, service_name, service_uuid, method_name, return_mall_box, args, kwargs):
+        request_mailbox = self.get_service_instance_mailbox_channel(service_name, service_uuid)
+        rpc_call_data = {
+            "rpc_id": self.gen_rpc_uuid(),
+
+            "request_mailbox": request_mailbox,
+            "return_mailbox": return_mall_box,
+
+            "method_name": method_name,
+            "args": args,
+            "kwargs": kwargs,
+            "return_value": None,
+            "exception": None,
+
+            "request_time": None,
+            "expire_time": None,
+            "return_time": None,
+        }
+
 
     def get_call_method_result(self, rpc_uuid):
         raise NotImplementedError()

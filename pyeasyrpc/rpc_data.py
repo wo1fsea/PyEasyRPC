@@ -12,6 +12,9 @@ Description:
 DEFAULT_RPC_DATA = {
     "rpc_id": None,
 
+    "request_mailbox": None,
+    "return_mailbox": None,
+
     "method_name": "",
     "args": [],
     "kwargs": {},
@@ -35,7 +38,7 @@ DEFAULT_SERVICE_DATA = {
 }
 
 DEFAULT_SERVICE_INSTANCE_DATA = {
-    "service_instance_id": None,
+    "service_uuid": None,
     "last_heartbeat_time": None,
 
     "last_call_require_time": None,
