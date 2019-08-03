@@ -108,16 +108,6 @@ class RedisObject(object):
         return self._redis.exists(self._key)
 
     @property
-    def time(self):
-        delta_time = self._delta_time.get(self._redis, None)
-        if delta_time is None:
-            local_time = time.time()
-            redis_time = float("%d.%d" % self._redis.time())
-            delta_time = redis_time - local_time
-            self._delta_time[self._redis] = delta_time
-        return delta_time + time.time()
-
-    @property
     def key(self):
         return self._key
 

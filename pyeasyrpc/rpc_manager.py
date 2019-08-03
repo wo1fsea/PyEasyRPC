@@ -12,10 +12,13 @@ Description:
 import random
 import shortuuid
 from .singleton import Singleton
+from . import redis_connection
+
 from .redis_collections.dict import Dict
 from .redis_collections.set import Set
 from .redis_collections.list import List
 from .redis_collections.queue import Queue
+from .redis_collections.mailbox import Mailbox
 
 from .rpc_data import DEFAULT_SERVICE_DATA
 
@@ -36,6 +39,7 @@ class RPCManager(Singleton):
     GROUP_KEY_PATTERN = "rpc_group[{group_name}]"
     SERVICE_TTL = 1.500  # s
     SERVICE_HEARTBEAT_INTERVAL = 0.500  # s
+    RPC_EXPIRE = 1.000  # s
 
     @staticmethod
     def gen_service_uuid():
@@ -55,6 +59,10 @@ class RPCManager(Singleton):
             packer=self._data_packer,
             url=redis_url
         )
+
+    @property
+    def time(self):
+        return redis_connection.get_time(self._redis_url)
 
     @property
     def group_key(self):
@@ -112,7 +120,7 @@ class RPCManager(Singleton):
             if method_list != service_data["method_list"]:
                 raise TypeError("can not register same service with different methods.")
 
-            service_data["last_register_time"] = self._service_dict.time
+            service_data["last_register_time"] = self.time
         else:
             service_uuid_set_key = self.get_service_uuid_set_key(service_name)
             self._service_dict[service_name] = {
@@ -122,8 +130,8 @@ class RPCManager(Singleton):
 
                 "service_uuid_set_key": service_uuid_set_key,
 
-                "register_time": self._service_dict.time,
-                "last_register_time": self._service_dict.time
+                "register_time": self.time,
+                "last_register_time": self.time
             }
 
             service_uuid_set.clear()
@@ -137,7 +145,7 @@ class RPCManager(Singleton):
             {
                 "service_name": service_name,
                 "service_uuid": service_uuid,
-                "last_heartbeat_time": service_instance.time,
+                "last_heartbeat_time": self.time,
 
                 "last_call_require_time": 0.,
                 "last_call_return_time": 0.,
@@ -169,7 +177,7 @@ class RPCManager(Singleton):
             self.get_service_uuid_set(service_name).discard(service_uuid)
             return False
 
-        service_instance["last_heartbeat_time"] = service_instance.time
+        service_instance["last_heartbeat_time"] = self.time
         return True
 
     def get_alive_service_uuid_set(self, service_name):
@@ -193,12 +201,12 @@ class RPCManager(Singleton):
         if not service_instance.exists:
             return False
 
-        return service_instance.time - service_instance["last_heartbeat_time"] < self.SERVICE_TTL
+        return self.time - service_instance["last_heartbeat_time"] < self.SERVICE_TTL
 
     def check_service_instance_loss_rate(self, service_name, service_uuid):
         service_instance = self.get_service_instance(service_name, service_uuid)
         if not service_instance.exists or \
-                service_instance.time - service_instance["last_heartbeat_time"] > self.SERVICE_TTL:
+                self.time - service_instance["last_heartbeat_time"] > self.SERVICE_TTL:
             return 1.1
 
         total_return = max(1., float(service_instance.get_raw("total_return")))
@@ -233,10 +241,11 @@ class RPCManager(Singleton):
         else:
             return []
 
-    def call_method(self, service_name, service_uuid, method_name, return_mall_box, args, kwargs):
+    def call_method(self, service_name, service_uuid, return_mall_box, method_name, args, kwargs):
+        rpc_uuid = self.gen_rpc_uuid()
         request_mailbox = self.get_service_instance_mailbox_channel(service_name, service_uuid)
-        rpc_call_data = {
-            "rpc_id": self.gen_rpc_uuid(),
+        rpc_data = {
+            "rpc_id": rpc_uuid,
 
             "request_mailbox": request_mailbox,
             "return_mailbox": return_mall_box,
@@ -247,11 +256,14 @@ class RPCManager(Singleton):
             "return_value": None,
             "exception": None,
 
-            "request_time": None,
+            "request_time": self.time,
             "expire_time": None,
             "return_time": None,
         }
 
+        mailbox = Mailbox(request_mailbox)
+        mailbox.set_message(rpc_data)
+        return rpc_uuid
 
     def get_call_method_result(self, rpc_uuid):
         raise NotImplementedError()
