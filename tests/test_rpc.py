@@ -10,7 +10,10 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import unittest
-from pyeasyrpc.rpc import RPCService, RPCClient, remote_method
+
+from pyeasyrpc.rpc import remote_method
+from pyeasyrpc.rpc import RPCService
+from pyeasyrpc.rpc import RPCClient
 
 
 class TestInstance(RPCService):
