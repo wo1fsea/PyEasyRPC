@@ -27,6 +27,10 @@ class Mailbox(object):
         self._pubsub = None
         self._thread = None
 
+    @property
+    def channel(self):
+        return self._channel
+
     def _raw_handler(self, raw_data):
         if raw_data["type"] in ("psubscribe", "subscribe"):
             return

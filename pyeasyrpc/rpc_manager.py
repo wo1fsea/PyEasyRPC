@@ -31,14 +31,14 @@ def generate_uuid():
     return str(shortuuid.uuid())
 
 
-class RPCManager(Singleton):
+class RPCManager(object):
     """
     RPCManager
     """
 
     GROUP_KEY_PATTERN = "rpc_group[{group_name}]"
-    SERVICE_TTL = 1.500  # s
-    SERVICE_HEARTBEAT_INTERVAL = 0.500  # s
+    SERVICE_TTL = 1.000  # s
+    SERVICE_HEARTBEAT_INTERVAL = 0.100  # s
     RPC_EXPIRE = 1.000  # s
 
     @staticmethod
@@ -63,6 +63,14 @@ class RPCManager(Singleton):
             packer=self._data_packer,
             url=redis_url
         )
+
+    @property
+    def data_packer(self):
+        return self._data_packer
+
+    @property
+    def redis_url(self):
+        return self._redis_url
 
     @property
     def time(self):
@@ -226,13 +234,13 @@ class RPCManager(Singleton):
         total_return = max(1., float(service_instance.get_raw("total_return")))
         total_require = max(1., float(service_instance.get_raw("total_require")))
 
-        return 1 - 1. * total_return / total_require
+        return 1 - total_return / total_require
 
     def get_service_list(self):
         return list(filter(self.get_alive_service_uuid_set, self._service_dict.keys()))
 
     def get_alive_service_uuid_low_loss(self, service_name):
-        service_uuid_set = self.get_service_uuid_set(service_name)
+        service_uuid_set = self.get_alive_service_uuid_set(service_name)
         service_uuid_set = sorted(
             service_uuid_set,
             key=lambda x: self.check_service_instance_loss_rate(service_name, x)
@@ -255,71 +263,21 @@ class RPCManager(Singleton):
         else:
             return []
 
-    def _increase_total_request(self, service_name, service_uuid):
+    def increase_total_request(self, service_name, service_uuid):
         service_instance = self.get_service_instance(service_name, service_uuid)
         if service_instance.exists:
             service_instance.increase_by("total_require", 1)
 
-    def _increase_total_return(self, service_name, service_uuid):
+    def increase_total_return(self, service_name, service_uuid):
         service_instance = self.get_service_instance(service_name, service_uuid)
         if service_instance.exists:
             service_instance.increase_by("total_return", 1)
 
-    def set_call_method_request(self,
-                                return_mailbox_channel,
-                                service_name, service_uuid, method_name, args, kwargs
-                                ):
-        rpc_uuid = self.gen_rpc_uuid()
-        request_mailbox_channel = self.get_service_instance_mailbox_channel(service_name, service_uuid)
-        request_mailbox = Mailbox(request_mailbox_channel, url=self._redis_url, packer=self._data_packer)
-        request_time = self.time
-        expire_time = request_time + self.RPC_EXPIRE
-        rpc_data = {
-            "rpc_uuid": rpc_uuid,
 
-            "request_mailbox": request_mailbox_channel,
-            "return_mailbox": return_mailbox_channel,
+class DefaultRPCManager(RPCManager, Singleton):
+    """
+    DefaultRPCManager
+    """
 
-            "service_name": service_name,
-            "service_uuid": service_uuid,
 
-            "method_name": method_name,
-            "args": args,
-            "kwargs": kwargs,
-            "return_value": None,
-            "exception": None,
-
-            "request_time": request_time,
-            "expire_time": expire_time,
-            "return_time": None,
-        }
-
-        request_mailbox.set_message(rpc_data)
-
-        self._increase_total_request(service_name, service_uuid)
-
-        return rpc_uuid, expire_time
-
-    def set_call_method_result(self, rpc_data):
-        return_mailbox = Mailbox(rpc_data["return_mailbox"], url=self._redis_url, packer=self._data_packer)
-        return_mailbox.set_message(rpc_data)
-        self._increase_total_return(rpc_data["service_name"], rpc_data["service_uuid"])
-
-    def get_call_method_request(self, request_mailbox):
-        return request_mailbox.get_message()
-
-    def get_call_method_result_with_uuid(self, return_mailbox, rpc_uuid, expire_time):
-        timeout = expire_time - self.time
-
-        while True:
-            if timeout > 0:
-                rpc_data = return_mailbox.get_message(timeout)
-            else:
-                return None
-
-            if rpc_data and rpc_data.get("rpc_uuid") == rpc_uuid:
-                return rpc_data
-
-    def get_call_method_result(self, return_mailbox):
-        rpc_data = return_mailbox.get_message()
-        return rpc_data
+assert DefaultRPCManager() is DefaultRPCManager()
