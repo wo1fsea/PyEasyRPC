@@ -27,7 +27,7 @@ class List(RedisObject, UserList):
 
     @property
     def data(self):
-        return tuple(self.__get_data())
+        return list(self.__get_data())
 
     def __contains__(self, item):
         return item in self.data
@@ -78,13 +78,15 @@ class List(RedisObject, UserList):
         data = list(self.__get_data())
         data.insert(i, item)
         self.clear()
-        self._redis.rpush(self._key, *data)
+        if data:
+            self._redis.rpush(self._key, *map(self.pack, data))
 
     def pop(self, i=-1):
         data = list(self.__get_data())
         item = data.pop(i)
         self.clear()
-        self._redis.rpush(self._key, *data)
+        if data:
+            self._redis.rpush(self._key, *map(self.pack, data))
 
         return item
 
@@ -92,13 +94,14 @@ class List(RedisObject, UserList):
         data = list(self.__get_data())
         data.remove(item)
         self.clear()
-        self._redis.rpush(self._key, *data)
+        if data:
+            self._redis.rpush(self._key, *map(self.pack, data))
 
     def copy(self):
-        raise NotImplementedError()
+        return self.data
 
     def count(self, item):
-        return self.data.count(item)
+        return self.data.count(self.pack(item))
 
     def index(self, item, *args):
         return self.data.index(item, *args)
@@ -107,13 +110,16 @@ class List(RedisObject, UserList):
         data = list(self.__get_data())
         data.reverse()
         self.clear()
-        self._redis.rpush(self._key, *data)
+        if data:
+            self._redis.rpush(self._key, *map(self.pack, data))
 
     def sort(self, *args, **kwds):
         data = list(self.__get_data())
         data.sort(*args, **kwds)
         self.clear()
-        self._redis.rpush(self._key, *data)
+        if data:
+            self._redis.rpush(self._key, *map(self.pack, data))
 
     def extend(self, other):
-        self._redis.rpush(self._key, *other)
+        if other:
+            self._redis.rpush(self._key, *map(self.pack, other))

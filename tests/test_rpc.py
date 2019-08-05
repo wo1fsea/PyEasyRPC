@@ -148,7 +148,7 @@ class RPCTestCase(unittest.TestCase):
         loop.run_until_complete(func())
 
         instance0.stop_background_running()
-
+        instance0.unregister()
 
 if __name__ == '__main__':
     RPCTestCase().test_run_service_in_thread()
