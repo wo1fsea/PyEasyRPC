@@ -21,11 +21,14 @@ class Queue(RedisObject):
         super(Queue, self).__init__(key, packer, url)
         self.max_len = max_len
 
+    def __len__(self):
+        return self._redis.llen(self.key)
+
     def put(self, item):
         item = self.pack(item)
         self._redis.lpush(self.key, item)
         if self.max_len > 0:
-            self._redis.ltrim(self.key, 0, self.max_len)
+            self._redis.ltrim(self.key, 0, self.max_len - 1)
 
     def get(self):
         item = self._redis.rpop(self.key)

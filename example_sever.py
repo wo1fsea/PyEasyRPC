@@ -32,7 +32,7 @@ class ServiceInstance(RPCService):
 
 
 def main():
-    instance0 = ServiceInstance()
+    instance0 = ServiceInstance(process_request_in_thread=True)
     instance0.start_background_running()
 
     input("press any key to stop")
