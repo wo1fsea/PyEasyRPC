@@ -126,7 +126,7 @@ class RPCTestCase(unittest.TestCase):
         instance0.stop_background_running()
         instance0.unregister()
 
-    def test_client_call_an(self):
+    def test_client_async_call_method(self):
         instance0 = TestInstance(process_request_in_thread=True)
         client = AsyncRPCClient("TestInstance")
 
@@ -149,6 +149,7 @@ class RPCTestCase(unittest.TestCase):
 
         instance0.stop_background_running()
         instance0.unregister()
+
 
 if __name__ == '__main__':
     RPCTestCase().test_run_service_in_thread()
