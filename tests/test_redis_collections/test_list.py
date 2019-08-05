@@ -39,6 +39,7 @@ class RedisListTestCase(unittest.TestCase):
         l.extend(data)
         self.assertEqual(l, data)
         self.assertEqual(l.data, data)
+        self.assertEqual(l.copy(), data)
         self.assertEqual(len(l), len(data))
 
         l.clear()
@@ -76,3 +77,34 @@ class RedisListTestCase(unittest.TestCase):
         l.insert(0, 100)
 
         self.assertEqual(l, test_l)
+
+        test_l.clear()
+        l.clear()
+
+        for i in range(10):
+            test_l.append(i)
+            l.append(i)
+
+        for i in range(10):
+            l[i] += 1
+            test_l[i] += 1
+            self.assertEqual(l[i], test_l[i])
+
+        for i in range(3):
+            l.pop(i)
+            test_l.pop(i)
+            self.assertEqual(l[i], test_l[i])
+
+        l += [1, 2, 3]
+        test_l += [1, 2, 3]
+        self.assertEqual(l, test_l)
+
+        l += [1, 2, 3]
+        test_l += [1, 2, 3]
+        self.assertEqual(l, test_l)
+
+        l1 = List(redis_key, packer)
+        self.assertEqual(l1, l)
+
+        l.clear()
+        self.assertEqual(len(l1), 0)
