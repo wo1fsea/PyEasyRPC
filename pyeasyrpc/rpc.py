@@ -52,7 +52,8 @@ class RPCService(object):
 
         self._register()
 
-        self._is_background_running = False
+        self._is_heartbeat_thread_running = False
+        self._is_process_thread_running = False
 
         self._heartbeat_thread = None
         self._process_thread = None
@@ -94,12 +95,10 @@ class RPCService(object):
             self._register()
 
     def start_background_running(self):
-        self._is_background_running = True
         self.start_heartbeat()
         self.start_process()
 
     def stop_background_running(self):
-        self._is_background_running = False
         self.stop_heartbeat()
         self.stop_process()
 
@@ -150,33 +149,37 @@ class RPCService(object):
         return False
 
     def _process_in_thread(self):
-        while self._is_background_running:
+        while self._is_process_thread_running:
             while self.process():
                 pass
             time.sleep(self.CHECK_REQUEST_INTERVAL)
 
     def start_process(self):
         assert self._process_thread is None, "process thread is already running."
+        self._is_process_thread_running = True
         self._process_thread = threading.Thread(target=self._process_in_thread)
         self._process_thread.start()
 
     def stop_process(self):
         assert self._process_thread is not None, "process thread is not running."
+        self._is_process_thread_running = False
         self._process_thread.join()
         self._process_thread = None
 
     def _heartbeat_in_thread(self):
-        while self._is_background_running:
+        while self._is_heartbeat_thread_running:
             self.heartbeat()
             time.sleep(self._rpc_manager.SERVICE_HEARTBEAT_INTERVAL)
 
     def start_heartbeat(self):
-        assert self._process_thread is None, "heartbeat thread is already running."
+        assert self._heartbeat_thread is None, "heartbeat thread is already running."
+        self._is_heartbeat_thread_running = True
         self._heartbeat_thread = threading.Thread(target=self._heartbeat_in_thread)
         self._heartbeat_thread.start()
 
     def stop_heartbeat(self):
         assert self._heartbeat_thread is not None, "heartbeat thread is not running."
+        self._is_heartbeat_thread_running = False
         self._heartbeat_thread.join()
         self._heartbeat_thread = None
 
