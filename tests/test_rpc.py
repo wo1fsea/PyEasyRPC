@@ -10,10 +10,12 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import unittest
+import asyncio
 
 from pyeasyrpc.rpc import remote_method
 from pyeasyrpc.rpc import RPCService
 from pyeasyrpc.rpc import RPCClient
+from pyeasyrpc.rpc import AsyncRPCClient
 
 
 class TestInstance(RPCService):
@@ -34,6 +36,8 @@ class RPCTestCase(unittest.TestCase):
 
         client1 = RPCClient("TestInstance", instance1.service_uuid)
         rpc_uuid1, expire_time1 = client1.set_call_method_request("add", (1, 2), {})
+
+        self.assertEqual(client0.get_methods(), instance0.rpc_methods)
 
         while instance0.process():
             pass
@@ -96,6 +100,54 @@ class RPCTestCase(unittest.TestCase):
         )
 
         instance0.unregister()
+
+    def test_service_process_request_in_thread(self):
+        instance0 = TestInstance(process_request_in_thread=True)
+
+        client0 = RPCClient("TestInstance")
+
+        instance0.start_background_running()
+
+        self.assertEqual(client0.add(1, 2), 3)
+        self.assertEqual(client0.add(1, 2), 3)
+        self.assertEqual(client0.add(1, 2), 3)
+
+        instance0.stop_background_running()
+
+        with self.assertRaises(TimeoutError) as context:
+            client0.add(1, 2)
+
+        instance0.start_background_running()
+
+        self.assertEqual(client0.add(1, 2), 3)
+        self.assertEqual(client0.add(1, 2), 3)
+        self.assertEqual(client0.add(1, 2), 3)
+
+        instance0.stop_background_running()
+        instance0.unregister()
+
+    def test_client_call_an(self):
+        instance0 = TestInstance(process_request_in_thread=True)
+        client = AsyncRPCClient("TestInstance")
+
+        async def add():
+            self.assertEqual(await client.add(1, 2), 3)
+
+        async def catch_exception():
+            with self.assertRaises(Exception) as context:
+                await client.add()
+
+        task = [add(), catch_exception()]
+
+        async def func():
+            await asyncio.wait(task)
+
+        instance0.start_background_running()
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(func())
+
+        instance0.stop_background_running()
 
 
 if __name__ == '__main__':
