@@ -14,13 +14,17 @@ import redis
 
 DEFAULT_URL = "redis://localhost:6379/0"
 DELTA_TIME = {}
+REDIS_POOLS = {}
 
 
 def get_redis(url=None):
     if not url:
         url = DEFAULT_URL
-    _redis = redis.Redis.from_url(url)
-    return _redis
+    redis_ = REDIS_POOLS.get(url)
+    if not redis_:
+        redis_ = redis.Redis.from_url(url)
+        REDIS_POOLS[url] = redis_
+    return redis_
 
 
 def get_time(url=None):

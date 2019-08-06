@@ -37,9 +37,9 @@ class RPCManager(object):
     """
 
     GROUP_KEY_PATTERN = "rpc_group[{group_name}]"
-    SERVICE_TTL = 1.000  # s
+    SERVICE_TTL = 3.000  # s
     SERVICE_HEARTBEAT_INTERVAL = 0.100  # s
-    RPC_EXPIRE = 1.000  # s
+    RPC_EXPIRE = 10.000  # s
 
     @staticmethod
     def gen_service_uuid():
