@@ -10,12 +10,12 @@ Description:
 ----------------------------------------------------------------------------"""
 
 import unittest
-import asyncio
+# import asyncio
 
 from pyeasyrpc.rpc import remote_method
 from pyeasyrpc.rpc import RPCService
 from pyeasyrpc.rpc import RPCClient
-from pyeasyrpc.rpc import AsyncRPCClient
+# from pyeasyrpc.rpc import AsyncRPCClient
 
 
 class TestInstance(RPCService):

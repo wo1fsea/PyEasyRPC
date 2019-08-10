@@ -70,6 +70,12 @@ class List(RedisObject, MutableSequence):
         self.extend(self.data * (n - 1))
         return self
 
+    def __eq__(self, other):
+        """ Return self==value. """
+        if isinstance(other, List):
+            other = other.data
+        return self.data == other
+
     def append(self, item):
         item = self.pack(item)
         self._redis.rpush(self._key, item)

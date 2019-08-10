@@ -266,7 +266,7 @@ class RPCClient(object):
             return return_value
 
         else:
-            raise TimeoutError(
+            raise RuntimeError(
                 "call {mailbox_channel} method {method_name} failed".format(
                     mailbox_channel=self._request_mailbox.channel,
                     method_name=method_name

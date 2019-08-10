@@ -78,7 +78,7 @@ class RedisListTestCase(unittest.TestCase):
 
         self.assertEqual(l, test_l)
 
-        test_l.clear()
+        test_l = []
         l.clear()
 
         for i in range(10):
