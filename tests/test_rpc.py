@@ -68,7 +68,7 @@ class RPCTestCase(unittest.TestCase):
 
         instance0.stop_background_running()
 
-        with self.assertRaises(TimeoutError) as context:
+        with self.assertRaises(RuntimeError) as context:
             client0.add(1, 2)
 
         instance0.start_background_running()
@@ -114,7 +114,7 @@ class RPCTestCase(unittest.TestCase):
 
         instance0.stop_background_running()
 
-        with self.assertRaises(TimeoutError) as context:
+        with self.assertRaises(RuntimeError) as context:
             client0.add(1, 2)
 
         instance0.start_background_running()
@@ -126,29 +126,29 @@ class RPCTestCase(unittest.TestCase):
         instance0.stop_background_running()
         instance0.unregister()
 
-    def test_client_async_call_method(self):
-        instance0 = TestInstance(process_request_in_thread=True)
-        client = AsyncRPCClient("TestInstance")
-
-        async def add():
-            self.assertEqual(await client.add(1, 2), 3)
-
-        async def catch_exception():
-            with self.assertRaises(Exception) as context:
-                await client.add()
-
-        task = [add(), catch_exception()]
-
-        async def func():
-            await asyncio.wait(task)
-
-        instance0.start_background_running()
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(func())
-
-        instance0.stop_background_running()
-        instance0.unregister()
+    # def test_client_async_call_method(self):
+    #     instance0 = TestInstance(process_request_in_thread=True)
+    #     client = AsyncRPCClient("TestInstance")
+    #
+    #     async def add():
+    #         self.assertEqual(await client.add(1, 2), 3)
+    #
+    #     async def catch_exception():
+    #         with self.assertRaises(Exception) as context:
+    #             await client.add()
+    #
+    #     task = [add(), catch_exception()]
+    #
+    #     async def func():
+    #         await asyncio.wait(task)
+    #
+    #     instance0.start_background_running()
+    #
+    #     loop = asyncio.get_event_loop()
+    #     loop.run_until_complete(func())
+    #
+    #     instance0.stop_background_running()
+    #     instance0.unregister()
 
 
 if __name__ == '__main__':
