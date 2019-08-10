@@ -11,7 +11,7 @@ Description:
 
 import time
 import msgpack
-import _pickle as pickle
+import cPickle as pickle
 
 from .. import redis_connection
 

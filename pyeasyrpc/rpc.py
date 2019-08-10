@@ -12,7 +12,7 @@ Description:
 import inspect
 import time
 import threading
-import asyncio
+# import asyncio
 
 from .rpc_manager import DefaultRPCManager
 from .redis_collections.mailbox import Mailbox
@@ -346,49 +346,49 @@ class RPCClient(object):
             return RPCClientMethod(self, method_name)
         raise AttributeError("type object '%s' has no attribute '%s'" % (self.__class__.__name__, method_name))
 
-
-class AsyncRPCClientMethod(object):
-    def __init__(self, client, method_name):
-        super(AsyncRPCClientMethod, self).__init__()
-        self._client = client
-        self._method_name = method_name
-
-    async def __call__(self, *args, **kwargs):
-        return await self._client.async_call_method(self._method_name, args, kwargs)
-
-
-class AsyncRPCClient(RPCClient):
-    ASYNC_GET_POLL_INTERVAL = 0.01
-
-    def __init__(self, service_name, service_uuid=None, rpc_manager=None):
-        super(AsyncRPCClient, self).__init__(service_name, service_uuid, rpc_manager)
-
-    async def async_call_method(self, method_name, args, kwargs):
-        rpc_uuid, expire_time = self.set_call_method_request(method_name, args, kwargs)
-
-        while True:
-
-            rpc_data = self.get_call_method_result_with_uuid_noblock(rpc_uuid)
-            if not rpc_data:
-                if expire_time - self._rpc_manager.time < 0:
-                    raise TimeoutError(
-                        "call {mailbox_channel} method {method_name} failed".format(
-                            mailbox_channel=self._request_mailbox.channel,
-                            method_name=method_name
-                        )
-                    )
-                await asyncio.sleep(self.ASYNC_GET_POLL_INTERVAL)
-                continue
-
-            return_value = rpc_data.get("return_value")
-            exception = rpc_data.get("exception")
-
-            if exception:
-                raise exception
-
-            return return_value
-
-    def __getattr__(self, method_name):
-        if self._method_list and method_name in self._method_list:
-            return AsyncRPCClientMethod(self, method_name)
-        raise AttributeError("type object '%s' has no attribute '%s'" % (self.__class__.__name__, method_name))
+#
+# class AsyncRPCClientMethod(object):
+#     def __init__(self, client, method_name):
+#         super(AsyncRPCClientMethod, self).__init__()
+#         self._client = client
+#         self._method_name = method_name
+#
+#     async def __call__(self, *args, **kwargs):
+#         return await self._client.async_call_method(self._method_name, args, kwargs)
+#
+#
+# class AsyncRPCClient(RPCClient):
+#     ASYNC_GET_POLL_INTERVAL = 0.01
+#
+#     def __init__(self, service_name, service_uuid=None, rpc_manager=None):
+#         super(AsyncRPCClient, self).__init__(service_name, service_uuid, rpc_manager)
+#
+#     async def async_call_method(self, method_name, args, kwargs):
+#         rpc_uuid, expire_time = self.set_call_method_request(method_name, args, kwargs)
+#
+#         while True:
+#
+#             rpc_data = self.get_call_method_result_with_uuid_noblock(rpc_uuid)
+#             if not rpc_data:
+#                 if expire_time - self._rpc_manager.time < 0:
+#                     raise TimeoutError(
+#                         "call {mailbox_channel} method {method_name} failed".format(
+#                             mailbox_channel=self._request_mailbox.channel,
+#                             method_name=method_name
+#                         )
+#                     )
+#                 await asyncio.sleep(self.ASYNC_GET_POLL_INTERVAL)
+#                 continue
+#
+#             return_value = rpc_data.get("return_value")
+#             exception = rpc_data.get("exception")
+#
+#             if exception:
+#                 raise exception
+#
+#             return return_value
+#
+#     def __getattr__(self, method_name):
+#         if self._method_list and method_name in self._method_list:
+#             return AsyncRPCClientMethod(self, method_name)
+#         raise AttributeError("type object '%s' has no attribute '%s'" % (self.__class__.__name__, method_name))

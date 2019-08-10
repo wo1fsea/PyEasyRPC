@@ -9,11 +9,11 @@ Description:
     list.py
 ----------------------------------------------------------------------------"""
 
-from collections import UserList
+from collections import MutableSequence
 from .redis_object import RedisObject
 
 
-class List(RedisObject, UserList):
+class List(RedisObject, MutableSequence):
     Redis_Type = "list"
 
     def __init__(self, key, packer=None, url=None):

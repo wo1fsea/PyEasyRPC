@@ -9,11 +9,11 @@ Description:
     table.py
 ----------------------------------------------------------------------------"""
 
-from collections import UserDict
+from collections import MutableMapping
 from .redis_object import RedisObject
 
 
-class Dict(RedisObject, UserDict):
+class Dict(RedisObject, MutableMapping):
     Redis_Type = "hash"
 
     def __init__(self, key, packer=None, url=None):
